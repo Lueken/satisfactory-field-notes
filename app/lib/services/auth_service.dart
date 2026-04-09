@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 const _webClientId =
-    '361744710738-o407ujuace2vcef2lh0nvbqu9rq6n2jv.apps.googleusercontent.com';
+    '361744710738-ato75j9crlhuiguqopl4ut3c7785shhk.apps.googleusercontent.com';
 
 class AuthService {
   final _googleSignIn = GoogleSignIn(

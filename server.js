@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 const GOOGLE_CLIENT_ID =
   process.env.GOOGLE_CLIENT_ID ||
-  "361744710738-o407ujuace2vcef2lh0nvbqu9rq6n2jv.apps.googleusercontent.com";
+  "361744710738-ato75j9crlhuiguqopl4ut3c7785shhk.apps.googleusercontent.com";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Postgres — Railway sets DATABASE_URL automatically
