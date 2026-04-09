@@ -36,7 +36,7 @@ app.put("/api/notes", async (req, res) => {
 });
 
 // SPA fallback
-app.get("*", (_req, res) => {
+app.get("/{*splat}", (_req, res) => {
   res.sendFile(join(__dirname, "dist", "index.html"));
 });
 
