@@ -132,10 +132,38 @@ class GameData {
   List<GameRecipe> recipesFor(String itemClassName) =>
       recipesByProduct[itemClassName] ?? [];
 
+  // Machine tier: prefer basic machines over advanced ones
+  static const _machineTier = {
+    'Desc_SmelterMk1_C': 0,
+    'Desc_ConstructorMk1_C': 1,
+    'Desc_AssemblerMk1_C': 2,
+    'Desc_FoundryMk1_C': 3,
+    'Desc_ManufacturerMk1_C': 4,
+    'Desc_OilRefinery_C': 5,
+    'Desc_Packager_C': 6,
+    'Desc_Blender_C': 7,
+    'Desc_Converter_C': 8,
+    'Desc_HadronCollider_C': 9,
+    'Desc_QuantumEncoder_C': 10,
+  };
+
+  int _recipeTier(GameRecipe r) {
+    if (r.producedIn.isEmpty) return 99;
+    return _machineTier[r.producedIn.first] ?? 50;
+  }
+
   GameRecipe? defaultRecipeFor(String itemClassName) {
     final list = recipesFor(itemClassName);
     if (list.isEmpty) return null;
-    return list.firstWhere((r) => !r.alternate, orElse: () => list.first);
+    // Filter to non-alternate, exclude Converter resource-swap recipes
+    final defaults = list.where((r) => !r.alternate).toList();
+    if (defaults.isEmpty) return list.first;
+    // Prefer non-Converter recipes; if only Converter recipes exist, this is
+    // effectively a raw resource (ore-to-ore swaps) — return null
+    final nonConverter = defaults.where((r) => _recipeTier(r) < 8).toList();
+    if (nonConverter.isEmpty) return null;
+    nonConverter.sort((a, b) => _recipeTier(a).compareTo(_recipeTier(b)));
+    return nonConverter.first;
   }
 
   String itemName(String className) =>
