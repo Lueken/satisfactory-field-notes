@@ -1,3 +1,12 @@
 node_modules
 dist
 .vite
+# IDE
+.idea/
+
+# Flutter
+app/build/
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
