@@ -37,11 +37,11 @@ class _AppShellState extends State<AppShell> {
   int _tab = 0;
 
   static const _screens = [
-    PlannerScreen(),
-    WikiScreen(),
     SessionScreen(),
     NeedsScreen(),
     FactoriesScreen(),
+    PlannerScreen(),
+    WikiScreen(),
     ScratchScreen(),
   ];
 
@@ -80,11 +80,11 @@ class _AppShellState extends State<AppShell> {
         height: 64,
         indicatorColor: ficsitAmber.withValues(alpha: 0.15),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.account_tree_outlined), selectedIcon: Icon(Icons.account_tree), label: 'Planner'),
-          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Wiki'),
           NavigationDestination(icon: Icon(Icons.checklist_outlined), selectedIcon: Icon(Icons.checklist), label: 'Session'),
           NavigationDestination(icon: Icon(Icons.warning_amber_outlined), selectedIcon: Icon(Icons.warning_amber), label: 'Needs'),
           NavigationDestination(icon: Icon(Icons.factory_outlined), selectedIcon: Icon(Icons.factory), label: 'Factories'),
+          NavigationDestination(icon: Icon(Icons.account_tree_outlined), selectedIcon: Icon(Icons.account_tree), label: 'Planner'),
+          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Wiki'),
           NavigationDestination(icon: Icon(Icons.edit_note_outlined), selectedIcon: Icon(Icons.edit_note), label: 'Scratch'),
         ],
       ),
