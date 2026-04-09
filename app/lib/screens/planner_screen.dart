@@ -4,6 +4,7 @@ import '../models/game_data.dart';
 import '../models/production_node.dart';
 import '../services/game_data_service.dart';
 import '../services/planner_engine.dart';
+import '../services/storage_service.dart';
 import '../widgets/item_search.dart';
 import '../widgets/production_tree.dart';
 import '../widgets/items_list.dart';
@@ -35,6 +36,27 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _tabController.dispose();
     _rateController.dispose();
     super.dispose();
+  }
+
+  void _saveAsFactory(WidgetRef ref) {
+    if (_result == null || _selectedItem == null) return;
+    final rate = _rateController.text;
+    ref.read(notesProvider.notifier).addFactory(
+          _selectedItem!.name,
+          '$rate/min',
+          'wip',
+          plannerData: {
+            'itemClassName': _selectedItem!.className,
+            'rate': double.tryParse(rate) ?? 1,
+          },
+        );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Saved ${_selectedItem!.name} to factories'),
+        backgroundColor: ficsitAmber,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   void _calculate(GameData data) {
@@ -145,6 +167,26 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   ItemsList(root: _result!, gameData: data),
                   BuildingsList(root: _result!),
                 ],
+              ),
+            ),
+            // Save as Factory
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _saveAsFactory(ref),
+                  icon: const Icon(Icons.save_outlined, size: 16),
+                  label: const Text('Save as Factory',
+                      style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ficsitAmber,
+                    side: const BorderSide(color: ficsitAmber, width: 0.5),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
               ),
             ),
           ],
