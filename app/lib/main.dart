@@ -120,12 +120,6 @@ class _AuthGateState extends ConsumerState<AuthGate> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => setState(() => _signedIn = true),
-                  child: const Text('Continue without signing in',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
-                ),
               ],
             ),
           ),
