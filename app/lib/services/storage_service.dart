@@ -3,22 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../models/note_data.dart';
+import 'auth_service.dart';
 
 const _localKey = 'satisfactory-field-notes-v2';
-
-// Set this to your Railway URL when deployed, or null for local-only
-const String? _syncUrl = 'https://satisfactory-field-notes-production.up.railway.app';
+const String _syncUrl = 'https://satisfactory-field-notes-production.up.railway.app';
 
 class StorageService {
+  final AuthService _auth;
   NoteData _data = const NoteData();
   NoteData get data => _data;
 
+  StorageService(this._auth);
+
   Future<NoteData> load() async {
-    // Try remote first
-    if (_syncUrl != null) {
+    // Try remote if signed in
+    if (_auth.isSignedIn) {
       try {
+        final token = await _auth.getFreshToken();
         final res = await http
-            .get(Uri.parse('$_syncUrl/api/notes'))
+            .get(
+              Uri.parse('$_syncUrl/api/notes'),
+              headers: {'Authorization': 'Bearer $token'},
+            )
             .timeout(const Duration(seconds: 5));
         if (res.statusCode == 200) {
           final json = jsonDecode(res.body);
@@ -54,16 +60,21 @@ class StorageService {
   }
 
   void _syncRemote() {
-    if (_syncUrl == null) return;
-    // Fire and forget
-    http
-        .put(
-          Uri.parse('$_syncUrl/api/notes'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(_data.toJson()),
-        )
-        .timeout(const Duration(seconds: 5))
-        .catchError((_) => http.Response('', 0));
+    if (!_auth.isSignedIn) return;
+    _auth.getFreshToken().then((token) {
+      if (token == null) return;
+      http
+          .put(
+            Uri.parse('$_syncUrl/api/notes'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(_data.toJson()),
+          )
+          .timeout(const Duration(seconds: 5))
+          .catchError((_) => http.Response('', 0));
+    });
   }
 }
 
@@ -75,6 +86,10 @@ class NotesNotifier extends StateNotifier<NoteData> {
   }
 
   Future<void> _load() async {
+    state = await _storage.load();
+  }
+
+  Future<void> reload() async {
     state = await _storage.load();
   }
 
@@ -150,7 +165,9 @@ class NotesNotifier extends StateNotifier<NoteData> {
       _save(state.copyWith(scratch: text));
 }
 
-final storageServiceProvider = Provider((_) => StorageService());
+final storageServiceProvider = Provider(
+  (ref) => StorageService(ref.watch(authServiceProvider)),
+);
 
 final notesProvider = StateNotifierProvider<NotesNotifier, NoteData>(
   (ref) => NotesNotifier(ref.watch(storageServiceProvider)),

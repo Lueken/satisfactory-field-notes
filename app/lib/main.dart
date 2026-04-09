@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
+import 'services/auth_service.dart';
+import 'services/storage_service.dart';
 import 'screens/planner_screen.dart';
 import 'screens/wiki_screen.dart';
 import 'screens/session_screen.dart';
@@ -21,19 +23,128 @@ class FieldNotesApp extends StatelessWidget {
       title: 'FICSIT Field Notes',
       theme: appTheme,
       debugShowCheckedModeBanner: false,
-      home: const AppShell(),
+      home: const AuthGate(),
     );
   }
 }
 
-class AppShell extends StatefulWidget {
+class AuthGate extends ConsumerStatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  ConsumerState<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<AuthGate> {
+  bool _checking = true;
+  bool _signedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoSignIn();
+  }
+
+  Future<void> _tryAutoSignIn() async {
+    final auth = ref.read(authServiceProvider);
+    final ok = await auth.signInSilently();
+    if (ok) {
+      ref.read(notesProvider.notifier).reload();
+    }
+    setState(() {
+      _signedIn = ok;
+      _checking = false;
+    });
+  }
+
+  Future<void> _signIn() async {
+    setState(() => _checking = true);
+    final auth = ref.read(authServiceProvider);
+    final ok = await auth.signIn();
+    if (ok) {
+      ref.read(notesProvider.notifier).reload();
+    }
+    setState(() {
+      _signedIn = ok;
+      _checking = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checking) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: ficsitAmber)),
+      );
+    }
+
+    if (!_signedIn) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'FICSIT',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: ficsitAmber,
+                    letterSpacing: 4,
+                    fontFamily: 'ShareTechMono',
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Field Notes',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'ShareTechMono',
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _signIn,
+                    icon: const Icon(Icons.login, size: 18),
+                    label: const Text('Sign in with Google',
+                        style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 15)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: ficsitAmber,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => setState(() => _signedIn = true),
+                  child: const Text('Continue without signing in',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return const AppShell();
+  }
+}
+
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   int _tab = 0;
 
   static const _screens = [
@@ -47,6 +158,8 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.read(authServiceProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -72,6 +185,22 @@ class _AppShellState extends State<AppShell> {
           ],
         ),
         toolbarHeight: 48,
+        actions: [
+          if (auth.isSignedIn)
+            IconButton(
+              icon: const Icon(Icons.logout, size: 18),
+              color: const Color(0xFF9CA3AF),
+              onPressed: () async {
+                await auth.signOut();
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const AuthGate()),
+                    (_) => false,
+                  );
+                }
+              },
+            ),
+        ],
       ),
       body: _screens[_tab],
       bottomNavigationBar: NavigationBar(
