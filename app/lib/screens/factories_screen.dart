@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/note_data.dart' as notes;
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import 'factory_detail_screen.dart';
 
 const _statusStyle = {
   'wip': (bg: Color(0xFFE6F1FB), fg: Color(0xFF185FA5)),
@@ -155,7 +157,7 @@ class _FactoriesScreenState extends ConsumerState<FactoriesScreen> {
 }
 
 class _FactoryRow extends ConsumerWidget {
-  final dynamic factory;
+  final notes.Factory factory;
   const _FactoryRow({required this.factory});
 
   @override
@@ -163,32 +165,53 @@ class _FactoryRow extends ConsumerWidget {
     final f = factory;
     final style = _statusStyle[f.status] ?? _statusStyle['wip']!;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(f.name,
-                    style: const TextStyle(
-                        fontSize: 15, color: Color(0xFF1A1A1A))),
-                if (f.produces.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(f.produces,
-                        style: const TextStyle(
-                            fontSize: 13, color: Color(0xFF6B7280))),
-                  ),
-              ],
-            ),
+    final hasPlan = f.plannerData != null;
+
+    return InkWell(
+      onTap: hasPlan
+          ? () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => FactoryDetailScreen(factory: f),
+                ),
+              )
+          : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
           ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(f.name,
+                            style: const TextStyle(
+                                fontSize: 15, color: Color(0xFF1A1A1A))),
+                      ),
+                      if (hasPlan) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.account_tree,
+                            size: 14, color: ficsitAmber),
+                      ],
+                    ],
+                  ),
+                  if (f.produces.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(f.produces,
+                          style: const TextStyle(
+                              fontSize: 13, color: Color(0xFF6B7280))),
+                    ),
+                ],
+              ),
+            ),
           GestureDetector(
             onTap: () =>
                 ref.read(notesProvider.notifier).cycleFactoryStatus(f.id),
@@ -212,7 +235,8 @@ class _FactoryRow extends ConsumerWidget {
             onPressed: () =>
                 ref.read(notesProvider.notifier).deleteFactory(f.id),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

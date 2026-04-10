@@ -9,6 +9,7 @@ import 'screens/session_screen.dart';
 import 'screens/needs_screen.dart';
 import 'screens/factories_screen.dart';
 import 'screens/scratch_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: FieldNotesApp()));
@@ -180,19 +181,24 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
         toolbarHeight: 48,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, size: 20),
+            color: const Color(0xFF6B7280),
+            tooltip: 'Game settings',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+          const SizedBox(width: 16),
           if (auth.isSignedIn)
-            IconButton(
-              icon: const Icon(Icons.logout, size: 18),
-              color: const Color(0xFF9CA3AF),
-              onPressed: () async {
-                await auth.signOut();
-                if (context.mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const AuthGate()),
-                    (_) => false,
-                  );
-                }
-              },
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: IconButton(
+                icon: const Icon(Icons.logout, size: 18),
+                color: const Color(0xFF9CA3AF),
+                tooltip: 'Sign out',
+                onPressed: () => _confirmLogout(context, auth),
+              ),
             ),
         ],
       ),
@@ -212,5 +218,44 @@ class _AppShellState extends ConsumerState<AppShell> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context, AuthService auth) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Sign out?',
+            style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 16)),
+        content: const Text(
+          'Your notes are synced to the cloud. You can sign back in anytime.',
+          style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel',
+                style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: ficsitAmber),
+            child: const Text('Sign out',
+                style: TextStyle(fontSize: 13, fontFamily: 'ShareTechMono')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await auth.signOut();
+      if (context.mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (_) => false,
+        );
+      }
+    }
   }
 }

@@ -107,15 +107,19 @@ class GameRecipe {
 class GameData {
   final Map<String, GameItem> items;
   final Map<String, GameRecipe> recipes;
+  final Map<String, double> machinePower; // className -> MW
   final Map<String, List<GameRecipe>> recipesByProduct;
   final List<GameItem> searchableItems;
 
   GameData({
     required this.items,
     required this.recipes,
+    required this.machinePower,
   })  : recipesByProduct = _indexByProduct(recipes),
         searchableItems = items.values.toList()
           ..sort((a, b) => a.name.compareTo(b.name));
+
+  double powerForMachine(String className) => machinePower[className] ?? 0;
 
   static Map<String, List<GameRecipe>> _indexByProduct(
       Map<String, GameRecipe> recipes) {
@@ -152,15 +156,20 @@ class GameData {
     return _machineTier[r.producedIn.first] ?? 50;
   }
 
-  GameRecipe? defaultRecipeFor(String itemClassName) {
+  GameRecipe? defaultRecipeFor(
+    String itemClassName, {
+    Set<String> unlockedAlternates = const {},
+  }) {
     final list = recipesFor(itemClassName);
     if (list.isEmpty) return null;
-    // Filter to non-alternate, exclude Converter resource-swap recipes
-    final defaults = list.where((r) => !r.alternate).toList();
-    if (defaults.isEmpty) return list.first;
+    // Include non-alternate defaults + any unlocked alternates
+    final available = list
+        .where((r) => !r.alternate || unlockedAlternates.contains(r.className))
+        .toList();
+    if (available.isEmpty) return list.first;
     // Prefer non-Converter recipes; if only Converter recipes exist, this is
     // effectively a raw resource (ore-to-ore swaps) — return null
-    final nonConverter = defaults.where((r) => _recipeTier(r) < 8).toList();
+    final nonConverter = available.where((r) => _recipeTier(r) < 8).toList();
     if (nonConverter.isEmpty) return null;
     nonConverter.sort((a, b) => _recipeTier(a).compareTo(_recipeTier(b)));
     return nonConverter.first;

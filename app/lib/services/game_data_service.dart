@@ -9,6 +9,7 @@ final gameDataProvider = FutureProvider<GameData>((ref) async {
 
   final itemsJson = json['items'] as Map<String, dynamic>;
   final recipesJson = json['recipes'] as Map<String, dynamic>;
+  final buildingsJson = json['buildings'] as Map<String, dynamic>? ?? {};
 
   final items = itemsJson.map(
     (key, value) => MapEntry(key, GameItem.fromJson(value as Map<String, dynamic>)),
@@ -18,5 +19,15 @@ final gameDataProvider = FutureProvider<GameData>((ref) async {
     (key, value) => MapEntry(key, GameRecipe.fromJson(value as Map<String, dynamic>)),
   );
 
-  return GameData(items: items, recipes: recipes);
+  // Extract power consumption from buildings metadata
+  final machinePower = <String, double>{};
+  for (final entry in buildingsJson.entries) {
+    final meta = (entry.value as Map<String, dynamic>)['metadata'] as Map<String, dynamic>?;
+    if (meta != null) {
+      final power = (meta['powerConsumption'] as num?)?.toDouble() ?? 0;
+      if (power > 0) machinePower[entry.key] = power;
+    }
+  }
+
+  return GameData(items: items, recipes: recipes, machinePower: machinePower);
 });

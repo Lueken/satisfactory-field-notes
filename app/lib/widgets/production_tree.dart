@@ -21,18 +21,28 @@ List<({ProductionNode node, int depth})> _flattenWithDepth(
 
 class ProductionTree extends StatelessWidget {
   final ProductionNode root;
+  final int beltRate;
+  final void Function(ProductionNode node)? onEditOverclock;
 
-  const ProductionTree({super.key, required this.root});
+  const ProductionTree({
+    super.key,
+    required this.root,
+    this.beltRate = 0,
+    this.onEditOverclock,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
-        // Root: just the item name + rate, no machine
-        _RootHeader(node: root),
-        // Each direct child is a collapsible sub-factory
-        for (final child in root.children) _SubFactorySection(root: child),
+        _RootHeader(node: root, beltRate: beltRate, onEdit: onEditOverclock),
+        for (final child in root.children)
+          _SubFactorySection(
+            root: child,
+            beltRate: beltRate,
+            onEditOverclock: onEditOverclock,
+          ),
       ],
     );
   }
@@ -40,44 +50,121 @@ class ProductionTree extends StatelessWidget {
 
 class _RootHeader extends StatelessWidget {
   final ProductionNode node;
-  const _RootHeader({required this.node});
+  final int beltRate;
+  final void Function(ProductionNode node)? onEdit;
+  const _RootHeader({required this.node, this.beltRate = 0, this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onEdit != null && !node.isRawResource
+            ? () => onEdit!(node)
+            : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: ficsitAmber.withValues(alpha: 0.08),
+            border: const Border(
+              bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_fmtCount(node.rate)} ${node.itemName}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              if (node.machineName != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      '${node.machineName} (x${_fmtCount(node.machineCount)})',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: ficsitAmber,
+                      ),
+                    ),
+                    if (node.overclock != 100) ...[
+                      const SizedBox(width: 8),
+                      _ClockBadge(clock: node.overclock),
+                    ],
+                  ],
+                ),
+                Text(
+                  '${node.itemName} (${_fmtRate(node.rate)}/min)',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+                ),
+              ],
+              if (beltRate > 0) _BeltWarning(rate: node.rate, beltRate: beltRate),
+              if (node.totalTreePower > 0) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.bolt, size: 14, color: ficsitAmber),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_fmtRate(node.totalTreePower)} MW total',
+                      style: const TextStyle(fontSize: 13, color: ficsitAmber),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClockBadge extends StatelessWidget {
+  final double clock;
+  const _ClockBadge({required this.clock});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: ficsitAmber.withValues(alpha: 0.08),
-        border: const Border(
-          bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
-        ),
+        color: ficsitAmber.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Text(
+        '${clock.toStringAsFixed(0)}%',
+        style: const TextStyle(fontSize: 11, color: ficsitAmber),
+      ),
+    );
+  }
+}
+
+class _BeltWarning extends StatelessWidget {
+  final double rate;
+  final int beltRate;
+  const _BeltWarning({required this.rate, required this.beltRate});
+
+  @override
+  Widget build(BuildContext context) {
+    if (rate <= beltRate) return const SizedBox.shrink();
+    final beltsNeeded = (rate / beltRate).ceil();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
         children: [
+          const Icon(Icons.warning_amber, size: 12, color: Color(0xFFD97706)),
+          const SizedBox(width: 4),
           Text(
-            '${_fmtCount(node.rate)} ${node.itemName}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A1A),
-            ),
+            'needs $beltsNeeded belts',
+            style: const TextStyle(fontSize: 11, color: Color(0xFFD97706)),
           ),
-          if (node.machineName != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              '${node.machineName} (x${_fmtCount(node.machineCount)})',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: ficsitAmber,
-              ),
-            ),
-            Text(
-              '${node.itemName} (${_fmtRate(node.rate)}/min)',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
-            ),
-          ],
         ],
       ),
     );
@@ -86,7 +173,14 @@ class _RootHeader extends StatelessWidget {
 
 class _SubFactorySection extends StatefulWidget {
   final ProductionNode root;
-  const _SubFactorySection({required this.root});
+  final int beltRate;
+  final void Function(ProductionNode node)? onEditOverclock;
+
+  const _SubFactorySection({
+    required this.root,
+    this.beltRate = 0,
+    this.onEditOverclock,
+  });
 
   @override
   State<_SubFactorySection> createState() => _SubFactorySectionState();
@@ -99,17 +193,18 @@ class _SubFactorySectionState extends State<_SubFactorySection> {
   Widget build(BuildContext context) {
     final node = widget.root;
     final hasChildren = node.children.isNotEmpty;
-
-    // Flatten the full chain including this node
     final chain = _flattenWithDepth(node, 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header: machine name (collapsible)
+        // Section header: machine name (collapsible, long-press to edit)
         GestureDetector(
           onTap: hasChildren
               ? () => setState(() => _expanded = !_expanded)
+              : null,
+          onLongPress: widget.onEditOverclock != null && !node.isRawResource
+              ? () => widget.onEditOverclock!(node)
               : null,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -134,30 +229,44 @@ class _SubFactorySectionState extends State<_SubFactorySection> {
                 ),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: _MachineItemBlock(node: node, isSectionHeader: true),
+                  child: _MachineItemBlock(
+                    node: node,
+                    isSectionHeader: true,
+                    beltRate: widget.beltRate,
+                  ),
                 ),
               ],
             ),
           ),
         ),
 
-        // Flattened children (skip the first entry which is the header node)
+        // Flattened children
         if (_expanded)
           for (final entry in chain.skip(1))
-            Container(
-              padding: EdgeInsets.only(
-                left: 40 + (entry.depth * 16.0),
-                right: 16,
-                top: 6,
-                bottom: 6,
-              ),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFAFAF9),
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFFF0EFED), width: 0.5),
+            GestureDetector(
+              onLongPress: widget.onEditOverclock != null &&
+                      !entry.node.isRawResource
+                  ? () => widget.onEditOverclock!(entry.node)
+                  : null,
+              child: Container(
+                padding: EdgeInsets.only(
+                  left: 40 + (entry.depth * 16.0),
+                  right: 16,
+                  top: 6,
+                  bottom: 6,
+                ),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAFAF9),
+                  border: Border(
+                    bottom: BorderSide(color: Color(0xFFF0EFED), width: 0.5),
+                  ),
+                ),
+                child: _MachineItemBlock(
+                  node: entry.node,
+                  isSectionHeader: false,
+                  beltRate: widget.beltRate,
                 ),
               ),
-              child: _MachineItemBlock(node: entry.node, isSectionHeader: false),
             ),
       ],
     );
@@ -169,10 +278,12 @@ class _SubFactorySectionState extends State<_SubFactorySection> {
 class _MachineItemBlock extends StatelessWidget {
   final ProductionNode node;
   final bool isSectionHeader;
+  final int beltRate;
 
   const _MachineItemBlock({
     required this.node,
     required this.isSectionHeader,
+    this.beltRate = 0,
   });
 
   @override
@@ -207,19 +318,27 @@ class _MachineItemBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Machine name
-        Text(
-          '${node.machineName ?? "?"} (x${_fmtCount(node.machineCount)})',
-          style: TextStyle(
-            fontSize: isSectionHeader ? 14 : 13,
-            fontWeight: FontWeight.w600,
-            color: isSectionHeader
-                ? const Color(0xFF1A1A1A)
-                : const Color(0xFF6B7280),
-          ),
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                '${node.machineName ?? "?"} (x${_fmtCount(node.machineCount)})',
+                style: TextStyle(
+                  fontSize: isSectionHeader ? 14 : 13,
+                  fontWeight: FontWeight.w600,
+                  color: isSectionHeader
+                      ? const Color(0xFF1A1A1A)
+                      : const Color(0xFF6B7280),
+                ),
+              ),
+            ),
+            if (node.overclock != 100) ...[
+              const SizedBox(width: 6),
+              _ClockBadge(clock: node.overclock),
+            ],
+          ],
         ),
         const SizedBox(height: 2),
-        // Item name + rate
         Text(
           '${node.itemName} (${_fmtRate(node.rate)}/min)',
           style: TextStyle(
@@ -227,6 +346,8 @@ class _MachineItemBlock extends StatelessWidget {
             color: const Color(0xFF9CA3AF),
           ),
         ),
+        if (beltRate > 0)
+          _BeltWarning(rate: node.rate, beltRate: beltRate),
       ],
     );
   }

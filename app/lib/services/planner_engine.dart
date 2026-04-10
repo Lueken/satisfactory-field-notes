@@ -3,8 +3,16 @@ import '../models/production_node.dart';
 
 class PlannerEngine {
   final GameData data;
+  final Set<String> unlockedAlternates;
 
-  const PlannerEngine(this.data);
+  /// Overclock per item class (1-250). Default 100.
+  final Map<String, double> overclocks;
+
+  const PlannerEngine(
+    this.data, {
+    this.unlockedAlternates = const {},
+    this.overclocks = const {},
+  });
 
   static const _machineNames = {
     'Desc_ConstructorMk1_C': 'Constructor',
@@ -25,7 +33,6 @@ class PlannerEngine {
     visited ??= {};
     final itemName = data.itemName(itemClassName);
 
-    // Prevent infinite recursion on circular recipes
     if (depth > 20 || visited.contains(itemClassName)) {
       return ProductionNode(
         itemClassName: itemClassName,
@@ -35,9 +42,11 @@ class PlannerEngine {
       );
     }
 
-    final recipe = data.defaultRecipeFor(itemClassName);
+    final recipe = data.defaultRecipeFor(
+      itemClassName,
+      unlockedAlternates: unlockedAlternates,
+    );
     if (recipe == null) {
-      // Raw resource (ore, water, etc.) — no recipe, leaf node
       return ProductionNode(
         itemClassName: itemClassName,
         itemName: itemName,
@@ -46,7 +55,6 @@ class PlannerEngine {
       );
     }
 
-    // Find which product index matches our target item
     final productIndex =
         recipe.products.indexWhere((p) => p.item == itemClassName);
     if (productIndex < 0) {
@@ -58,9 +66,8 @@ class PlannerEngine {
       );
     }
 
-    // Rate per machine = (60 / craftTime) * amountPerCycle
-    final ratePerMachine = recipe.outputPerMin(productIndex);
-    if (ratePerMachine <= 0) {
+    final baseRatePerMachine = recipe.outputPerMin(productIndex);
+    if (baseRatePerMachine <= 0) {
       return ProductionNode(
         itemClassName: itemClassName,
         itemName: itemName,
@@ -69,17 +76,29 @@ class PlannerEngine {
       );
     }
 
-    final machineCount = desiredRate / ratePerMachine;
-    final machineName = recipe.producedIn.isNotEmpty
-        ? _machineNames[recipe.producedIn.first] ?? recipe.producedIn.first
-        : null;
+    // Apply overclock (defaults to 100%)
+    final overclock = overclocks[itemClassName] ?? 100.0;
+    final effectiveRatePerMachine = baseRatePerMachine * (overclock / 100);
+    final machineCount = desiredRate / effectiveRatePerMachine;
 
-    // Recurse into each ingredient
+    final machineClass =
+        recipe.producedIn.isNotEmpty ? recipe.producedIn.first : null;
+    final machineName = machineClass != null
+        ? _machineNames[machineClass] ?? machineClass
+        : null;
+    final powerPerMachine =
+        machineClass != null ? data.powerForMachine(machineClass) : 0.0;
+
+    // Recurse into each ingredient. Total input rate = desiredOutput * ratio,
+    // independent of overclock (more overclock = fewer machines but each
+    // consumes more, total is the same).
     final nextVisited = {...visited, itemClassName};
     final children = <ProductionNode>[];
+    final outputPerCycle = recipe.products[productIndex].amount;
     for (var i = 0; i < recipe.ingredients.length; i++) {
       final ingredient = recipe.ingredients[i];
-      final inputRate = machineCount * recipe.inputPerMin(i);
+      final ratio = recipe.ingredients[i].amount / outputPerCycle;
+      final inputRate = desiredRate * ratio;
       children.add(
         calculate(ingredient.item, inputRate,
             depth: depth + 1, visited: nextVisited),
@@ -91,7 +110,10 @@ class PlannerEngine {
       itemName: itemName,
       rate: desiredRate,
       machineName: machineName,
+      machineClassName: machineClass,
       machineCount: machineCount,
+      powerPerMachine: powerPerMachine,
+      overclock: overclock,
       recipeName: recipe.name,
       craftTime: recipe.time,
       children: children,

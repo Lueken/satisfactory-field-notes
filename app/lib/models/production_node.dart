@@ -1,9 +1,14 @@
+import 'dart:math' as math;
+
 class ProductionNode {
   final String itemClassName;
   final String itemName;
   final double rate; // items per minute
   final String? machineName;
+  final String? machineClassName;
   final double machineCount; // fractional (e.g., 3.5 constructors)
+  final double powerPerMachine; // MW per machine (at 100%)
+  final double overclock; // percentage, 50-250
   final String? recipeName;
   final double? craftTime;
   final bool isRawResource;
@@ -14,7 +19,10 @@ class ProductionNode {
     required this.itemName,
     required this.rate,
     this.machineName,
+    this.machineClassName,
     this.machineCount = 0,
+    this.powerPerMachine = 0,
+    this.overclock = 100,
     this.recipeName,
     this.craftTime,
     this.isRawResource = false,
@@ -22,6 +30,24 @@ class ProductionNode {
   });
 
   int get machineCountCeil => machineCount.ceil();
+
+  /// Power scales by (clock/100)^1.321928 per game formula
+  double get powerPerMachineOC {
+    if (overclock == 100) return powerPerMachine;
+    final ratio = overclock / 100.0;
+    return powerPerMachine * math.pow(ratio, 1.321928).toDouble();
+  }
+
+  double get totalPower => machineCount * powerPerMachineOC;
+
+  /// Total power for this node and all descendants.
+  double get totalTreePower {
+    var sum = totalPower;
+    for (final child in children) {
+      sum += child.totalTreePower;
+    }
+    return sum;
+  }
 
   Map<String, double> flatItems() {
     final map = <String, double>{};
@@ -40,7 +66,11 @@ class ProductionNode {
     final map = <String, _BuildingSummary>{};
     _collectBuildings(map);
     return map.entries
-        .map((e) => (name: e.value.name, count: e.value.count))
+        .map((e) => (
+              name: e.value.name,
+              count: e.value.count,
+              powerEach: e.value.powerEach,
+            ))
         .toList()
       ..sort((a, b) => b.count.compareTo(a.count));
   }
@@ -49,8 +79,9 @@ class ProductionNode {
     if (machineName != null && !isRawResource) {
       map.update(
         machineName!,
-        (v) => _BuildingSummary(v.name, v.count + machineCount),
-        ifAbsent: () => _BuildingSummary(machineName!, machineCount),
+        (v) => _BuildingSummary(v.name, v.count + machineCount, v.powerEach),
+        ifAbsent: () =>
+            _BuildingSummary(machineName!, machineCount, powerPerMachine),
       );
     }
     for (final child in children) {
@@ -62,7 +93,8 @@ class ProductionNode {
 class _BuildingSummary {
   final String name;
   final double count;
-  const _BuildingSummary(this.name, this.count);
+  final double powerEach;
+  const _BuildingSummary(this.name, this.count, this.powerEach);
 }
 
-typedef BuildingSummary = ({String name, double count});
+typedef BuildingSummary = ({String name, double count, double powerEach});
