@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/game_data.dart';
 import '../services/game_data_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
+import 'alternates_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -15,15 +15,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final _searchController = TextEditingController();
-  String _search = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -43,15 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         data: (data) {
           final alternates = data.recipes.values
               .where((r) => r.alternate && r.inMachine && !r.forBuilding)
-              .toList()
-            ..sort((a, b) => a.name.compareTo(b.name));
-
-          final filtered = _search.isEmpty
-              ? alternates
-              : alternates
-                  .where((r) =>
-                      r.name.toLowerCase().contains(_search.toLowerCase()))
-                  .toList();
+              .toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -115,83 +98,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  _SectionLabel('ALTERNATE RECIPES'),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${settings.unlockedAlternates.length} / ${alternates.length}',
-                    style: const TextStyle(
-                        fontSize: 11, color: ficsitAmber, letterSpacing: 1),
-                  ),
-                ],
-              ),
+              _SectionLabel('RESEARCH'),
               const SizedBox(height: 8),
-
-              TextField(
-                controller: _searchController,
-                onChanged: (val) => setState(() => _search = val),
-                style: TextStyle(fontSize: 14, color: colors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Search alternates...',
-                  hintStyle: TextStyle(color: colors.textTertiary),
-                  prefixIcon:
-                      Icon(Icons.search, size: 18, color: colors.textTertiary),
-                  isDense: true,
+              InkWell(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const AlternatesScreen()),
+                ),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: colors.bgSecondary,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: colors.borderSecondary, width: 0.5),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.science_outlined,
+                          size: 18, color: ficsitAmber),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Alternate recipes',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: colors.textPrimary,
+                                    fontFamily: 'ShareTechMono')),
+                            Text(
+                              '${settings.unlockedAlternates.length} of ${alternates.length} unlocked',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: colors.textTertiary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          size: 20, color: colors.textTertiary),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => ref
-                          .read(settingsProvider.notifier)
-                          .setAllAlternates(
-                              alternates.map((r) => r.className).toSet()),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: BorderSide(
-                            color: colors.borderSecondary, width: 0.5),
-                      ),
-                      child: Text('Unlock all',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontFamily: 'ShareTechMono',
-                              color: colors.textSecondary)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => ref
-                          .read(settingsProvider.notifier)
-                          .setAllAlternates({}),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: BorderSide(
-                            color: colors.borderSecondary, width: 0.5),
-                      ),
-                      child: Text('Clear all',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontFamily: 'ShareTechMono',
-                              color: colors.textSecondary)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              for (final recipe in filtered)
-                _AlternateRow(
-                  recipe: recipe,
-                  checked: settings.unlockedAlternates.contains(recipe.className),
-                  onTap: () => ref
-                      .read(settingsProvider.notifier)
-                      .toggleAlternate(recipe.className),
-                ),
 
               const SizedBox(height: 32),
               _SectionLabel('SUPPORT THE APP'),
@@ -532,56 +484,3 @@ class _ToggleRow extends StatelessWidget {
   }
 }
 
-class _AlternateRow extends StatelessWidget {
-  final GameRecipe recipe;
-  final bool checked;
-  final VoidCallback onTap;
-
-  const _AlternateRow({
-    required this.recipe,
-    required this.checked,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cleanName = recipe.name.replaceFirst(RegExp(r'^Alternate:\s*'), '');
-    final colors = AppColors.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Checkbox(
-              value: checked,
-              onChanged: (_) => onTap(),
-              activeColor: ficsitAmber,
-              visualDensity: VisualDensity.compact,
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(cleanName,
-                      style: TextStyle(
-                          fontSize: 13, color: colors.textPrimary)),
-                  Text(
-                    recipe.products
-                        .map((p) => p.item
-                            .replaceAll('Desc_', '')
-                            .replaceAll('_C', ''))
-                        .join(', '),
-                    style:
-                        TextStyle(fontSize: 11, color: colors.textTertiary),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
