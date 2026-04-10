@@ -85,45 +85,86 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (!_signedIn) {
+      final colors = AppColors.of(context);
       return Scaffold(
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
+                // Branded logo mark — FICSIT badge-style
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: ficsitAmber.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: ficsitAmber.withValues(alpha: 0.35),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(Icons.factory,
+                      size: 44, color: ficsitAmber),
+                ),
+                const SizedBox(height: 24),
+                const Text(
                   'FICSIT',
                   style: TextStyle(
                     fontSize: 14,
                     color: ficsitAmber,
-                    letterSpacing: 4,
+                    letterSpacing: 6,
                     fontFamily: 'ShareTechMono',
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Field Notes',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 26,
                     fontWeight: FontWeight.w500,
                     fontFamily: 'ShareTechMono',
+                    color: colors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                Text(
+                  'A companion for diligent Pioneers',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'ShareTechMono',
+                    color: colors.textTertiary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 40),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _signIn,
                     icon: const Icon(Icons.login, size: 18),
                     label: const Text('Sign in with Google',
-                        style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 15)),
+                        style: TextStyle(
+                            fontFamily: 'ShareTechMono', fontSize: 15)),
                     style: FilledButton.styleFrom(
                       backgroundColor: ficsitAmber,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'FICSIT does not condone lost production data.\nAuthenticate to sync your notes across devices.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.textTertiary,
+                    height: 1.5,
                   ),
                 ),
               ],
@@ -215,6 +256,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           setState(() => _tab = i);
         },
         height: 64,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         indicatorColor: ficsitAmber.withValues(alpha: 0.15),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.checklist_outlined), selectedIcon: Icon(Icons.checklist), label: 'Session'),

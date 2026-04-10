@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note_data.dart' as notes;
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
 import 'factory_detail_screen.dart';
 
 const _statusStyle = {
@@ -67,10 +68,13 @@ class _FactoriesScreenState extends ConsumerState<FactoriesScreen> {
           const SizedBox(height: 12),
           Expanded(
             child: factories.isEmpty && !_showForm
-                ? Center(
-                    child: Text('No factories logged yet.',
-                        style: TextStyle(
-                            fontSize: 13, color: colors.textTertiary)))
+                ? const EmptyState(
+                    icon: Icons.factory,
+                    title: 'No factories logged',
+                    subtitle:
+                        'Save plans from the Planner tab, or log a factory manually to track its status.',
+                    hint: 'Tap "Log factory" below to start',
+                  )
                 : ListView(
                     children: [
                       for (final f in factories) _FactoryRow(factory: f),
@@ -226,18 +230,24 @@ class _FactoryRow extends ConsumerWidget {
               HapticFeedback.lightImpact();
               ref.read(notesProvider.notifier).cycleFactoryStatus(f.id);
             },
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: style.bg,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(f.status,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: style.fg,
-                      letterSpacing: 0.5)),
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: style.fg,
+                    letterSpacing: 0.5),
+                child: Text(f.status),
+              ),
             ),
           ),
           IconButton(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
 
 class NeedsScreen extends ConsumerStatefulWidget {
   const NeedsScreen({super.key});
@@ -75,10 +76,13 @@ class _NeedsScreenState extends ConsumerState<NeedsScreen> {
           const SizedBox(height: 16),
           Expanded(
             child: needs.isEmpty
-                ? Center(
-                    child: Text('Nothing queued up.',
-                        style: TextStyle(
-                            fontSize: 13, color: colors.textTertiary)))
+                ? const EmptyState(
+                    icon: Icons.warning_amber,
+                    title: 'Your hunt list is empty',
+                    subtitle:
+                        'Jot down the stuff you need to build, find, or unlock. Future-you will thank you.',
+                    hint: 'e.g. "Screw sub-factory" or "Power slug on copper ridge"',
+                  )
                 : ListView.builder(
                     itemCount: needs.length,
                     itemBuilder: (context, i) {

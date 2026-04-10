@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
 
 class SessionScreen extends ConsumerStatefulWidget {
   const SessionScreen({super.key});
@@ -76,10 +77,13 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           const SizedBox(height: 16),
           Expanded(
             child: tasks.isEmpty
-                ? Center(
-                    child: Text('No tasks yet. Keep them small and specific.',
-                        style: TextStyle(
-                            fontSize: 13, color: colors.textTertiary)))
+                ? const EmptyState(
+                    icon: Icons.checklist,
+                    title: 'Nothing tracked yet',
+                    subtitle:
+                        'Break the big thing into small wins. Type the next tiny step above and press Add.',
+                    hint: 'e.g. "Run 60m belt to smelter row"',
+                  )
                 : ListView.builder(
                     itemCount: tasks.length,
                     itemBuilder: (context, i) {
