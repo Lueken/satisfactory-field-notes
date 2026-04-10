@@ -27,6 +27,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   ProductionNode? _result;
   final Map<String, double> _overclocks = {};
   final Map<String, double> _inputConstraints = {};
+  final Set<String> _collapsedSections = {};
   bool _showInputs = false;
 
   bool get _advanced => ref.read(settingsProvider).advancedPlanner;
@@ -61,10 +62,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   Future<void> _showOverclockLockedDialog() async {
+    final colors = AppColors.of(context);
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
           children: [
@@ -80,7 +81,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             ),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -88,35 +89,35 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               'Advanced production planning is a FICSIT-approved privilege reserved for Pioneers who have secured at least one Power Shard and completed the relevant Overclocking protocol.',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF1A1A1A),
+                color: colors.textPrimary,
                 height: 1.5,
               ),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               'FICSIT does not recommend planning overclocked production without the means to actually overclock. Such planning has been statistically linked to pioneer frustration, unmet throughput targets, and, in one documented case, a strongly-worded letter.',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF6B7280),
+                color: colors.textSecondary,
                 height: 1.5,
               ),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               'Return once you have located your first Power Shard. FICSIT believes in you. Mostly.',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF6B7280),
+                color: colors.textSecondary,
                 fontStyle: FontStyle.italic,
                 height: 1.5,
               ),
             ),
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             Text(
               'You may enable Advanced mode in Settings once Overclocking has been properly unlocked.',
               style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF9CA3AF),
+                color: colors.textTertiary,
               ),
             ),
           ],
@@ -140,11 +141,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (_result == null || _selectedItem == null) return;
     final rate = _rateController.text;
     final nameCtrl = TextEditingController(text: _selectedItem!.name);
+    final colors = AppColors.of(context);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Save as factory',
             style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 15)),
@@ -155,28 +156,27 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             TextField(
               controller: nameCtrl,
               autofocus: true,
-              style: const TextStyle(fontSize: 15),
-              decoration: const InputDecoration(
+              style: TextStyle(fontSize: 15, color: colors.textPrimary),
+              decoration: InputDecoration(
                 labelText: 'Factory name',
                 labelStyle:
-                    TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                    TextStyle(fontSize: 12, color: colors.textTertiary),
               ),
               onSubmitted: (_) => Navigator.of(ctx).pop(true),
             ),
             const SizedBox(height: 8),
             Text(
               'Producing $rate/min',
-              style:
-                  const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+              style: TextStyle(fontSize: 12, color: colors.textTertiary),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style:
-                    TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+                    TextStyle(fontSize: 13, color: colors.textTertiary)),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -284,11 +284,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       syncing = false;
     }
 
+    final colors = AppColors.of(context);
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Text(
             'Overclock ${node.itemName}',
@@ -301,8 +301,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               children: [
                 Text(
                   '${node.machineName} — base ${base.toStringAsFixed(2)}/min per machine',
-                  style: const TextStyle(
-                      fontSize: 11, color: Color(0xFF9CA3AF)),
+                  style: TextStyle(
+                      fontSize: 11, color: colors.textTertiary),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -311,17 +311,18 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Clock %',
+                          Text('Clock %',
                               style: TextStyle(
-                                  fontSize: 11, color: Color(0xFF9CA3AF))),
+                                  fontSize: 11, color: colors.textTertiary)),
                           TextField(
                             controller: clockCtrl,
                             keyboardType:
                                 const TextInputType.numberWithOptions(
                                     decimal: true),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 16,
-                                fontFamily: 'ShareTechMono'),
+                                fontFamily: 'ShareTechMono',
+                                color: colors.textPrimary),
                             decoration: const InputDecoration(
                               isDense: true,
                               suffixText: '%',
@@ -336,17 +337,18 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Items / min',
+                          Text('Items / min',
                               style: TextStyle(
-                                  fontSize: 11, color: Color(0xFF9CA3AF))),
+                                  fontSize: 11, color: colors.textTertiary)),
                           TextField(
                             controller: rateCtrl,
                             keyboardType:
                                 const TextInputType.numberWithOptions(
                                     decimal: true),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 16,
-                                fontFamily: 'ShareTechMono'),
+                                fontFamily: 'ShareTechMono',
+                                color: colors.textPrimary),
                             decoration: const InputDecoration(
                               isDense: true,
                               suffixText: '/min',
@@ -396,8 +398,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           syncing = false;
                         }),
                         child: Text('$preset%',
-                            style: const TextStyle(
-                                fontSize: 11, color: Color(0xFF6B7280))),
+                            style: TextStyle(
+                                fontSize: 11, color: colors.textSecondary)),
                       ),
                   ],
                 ),
@@ -407,8 +409,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+              child: Text('Cancel',
+                  style:
+                      TextStyle(fontSize: 13, color: colors.textTertiary)),
             ),
             FilledButton(
               onPressed: () {
@@ -443,7 +446,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       loading: () =>
           const Center(child: CircularProgressIndicator(color: ficsitAmber)),
       error: (e, _) => Center(child: Text('Failed to load game data: $e')),
-      data: (data) => Column(
+      data: (data) {
+        final colors = AppColors.of(context);
+        return Column(
         children: [
           // Header + mode toggle
           Padding(
@@ -454,11 +459,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'PRODUCTION PLANNER',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF9CA3AF),
+                        color: colors.textTertiary,
                         letterSpacing: 1.5,
                       ),
                     ),
@@ -486,14 +491,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                         controller: _rateController,
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
-                        style: const TextStyle(fontSize: 16),
-                        decoration: const InputDecoration(
+                        style: TextStyle(
+                            fontSize: 16, color: colors.textPrimary),
+                        decoration: InputDecoration(
                           hintText: 'rate',
-                          hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                          hintStyle: TextStyle(color: colors.textTertiary),
                           suffixText: '/min',
                           suffixStyle: TextStyle(
-                              fontSize: 12, color: Color(0xFF9CA3AF)),
-                          contentPadding: EdgeInsets.symmetric(
+                              fontSize: 12, color: colors.textTertiary),
+                          contentPadding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 14),
                         ),
                         onSubmitted: (_) => _calculate(data),
@@ -528,9 +534,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      'Long-press any machine to overclock',
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF9CA3AF)),
+                      'Long-press or tap ⚙ to overclock',
+                      style: TextStyle(
+                          fontSize: 11, color: colors.textTertiary),
                     ),
                   ),
                 if (_advanced && _result != null && _showInputs)
@@ -556,7 +562,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             TabBar(
               controller: _tabController,
               labelColor: ficsitAmber,
-              unselectedLabelColor: const Color(0xFF9CA3AF),
+              unselectedLabelColor: colors.textTertiary,
               indicatorColor: ficsitAmber,
               labelStyle: const TextStyle(
                   fontSize: 12,
@@ -576,6 +582,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     root: _result!,
                     beltRate: _effectiveBeltRate(),
                     onEditOverclock: _advanced ? _showOverclockDialog : null,
+                    collapsedSections: _collapsedSections,
+                    onToggleSection: (cn) => setState(() {
+                      if (_collapsedSections.contains(cn)) {
+                        _collapsedSections.remove(cn);
+                      } else {
+                        _collapsedSections.add(cn);
+                      }
+                    }),
                   ),
                   ItemsList(root: _result!, gameData: data),
                   BuildingsList(root: _result!),
@@ -610,10 +624,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Select an item and rate to calculate.',
-                      style:
-                          TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+                      style: TextStyle(
+                          fontSize: 13, color: colors.textTertiary),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -626,7 +640,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               ),
             ),
         ],
-      ),
+        );
+      },
     );
   }
 }
@@ -639,22 +654,24 @@ class _ModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F4),
+        color: colors.bgSecondary,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _segment('Simple', !advanced, () => onChanged(false)),
-          _segment('Advanced', advanced, () => onChanged(true)),
+          _segment('Simple', !advanced, () => onChanged(false), colors),
+          _segment('Advanced', advanced, () => onChanged(true), colors),
         ],
       ),
     );
   }
 
-  Widget _segment(String label, bool active, VoidCallback onTap) {
+  Widget _segment(
+      String label, bool active, VoidCallback onTap, AppColors colors) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -668,7 +685,7 @@ class _ModeToggle extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontFamily: 'ShareTechMono',
-            color: active ? Colors.white : const Color(0xFF6B7280),
+            color: active ? Colors.white : colors.textSecondary,
             letterSpacing: 0.5,
           ),
         ),
@@ -732,30 +749,32 @@ class _InputsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    const suppliedColor = Color(0xFF3B82F6);
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F4),
+        color: colors.bgSecondary,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE7E5E4), width: 0.5),
+        border: Border.all(color: colors.borderSecondary, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('SUPPLIED INPUTS',
+          Text('SUPPLIED INPUTS',
               style: TextStyle(
                   fontSize: 10,
-                  color: Color(0xFF9CA3AF),
+                  color: colors.textTertiary,
                   letterSpacing: 1.5)),
           const SizedBox(height: 6),
           if (constraints.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
                 'No supplied inputs. Add one to skip building production for that item.',
                 style: TextStyle(
-                    fontSize: 11, color: Color(0xFF9CA3AF)),
+                    fontSize: 11, color: colors.textTertiary),
               ),
             ),
           for (final entry in constraints.entries)
@@ -767,17 +786,17 @@ class _InputsPanel extends StatelessWidget {
                     child: Text(
                       data.itemName(entry.key),
                       style: const TextStyle(
-                          fontSize: 13, color: Color(0xFF185FA5)),
+                          fontSize: 13, color: suppliedColor),
                     ),
                   ),
                   Text(
                     '${entry.value == entry.value.roundToDouble() ? entry.value.toStringAsFixed(0) : entry.value.toStringAsFixed(1)}/min',
-                    style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF6B7280)),
+                    style: TextStyle(
+                        fontSize: 13, color: colors.textSecondary),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, size: 14),
-                    color: const Color(0xFF9CA3AF),
+                    color: colors.textTertiary,
                     padding: EdgeInsets.zero,
                     constraints:
                         const BoxConstraints(minWidth: 26, minHeight: 26),
@@ -794,8 +813,8 @@ class _InputsPanel extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 12, fontFamily: 'ShareTechMono')),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF185FA5),
-              side: const BorderSide(color: Color(0xFFD0D7DE), width: 0.5),
+              foregroundColor: suppliedColor,
+              side: BorderSide(color: colors.borderSecondary, width: 0.5),
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               minimumSize: const Size(0, 32),
@@ -810,12 +829,12 @@ class _InputsPanel extends StatelessWidget {
   Future<void> _showAddDialog(BuildContext context) async {
     GameItem? selected;
     final rateCtrl = TextEditingController();
+    final colors = AppColors.of(context);
 
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12)),
           title: const Text('Add supplied input',
@@ -838,18 +857,18 @@ class _InputsPanel extends StatelessWidget {
                   controller: rateCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(fontSize: 16),
-                  decoration: const InputDecoration(
+                  style: TextStyle(fontSize: 16, color: colors.textPrimary),
+                  decoration: InputDecoration(
                     hintText: 'Rate available',
-                    hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                    hintStyle: TextStyle(color: colors.textTertiary),
                     suffixText: '/min',
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'The planner will treat this item as supplied and skip building production for it.',
                   style: TextStyle(
-                      fontSize: 11, color: Color(0xFF9CA3AF)),
+                      fontSize: 11, color: colors.textTertiary),
                 ),
               ],
             ),
@@ -857,9 +876,9 @@ class _InputsPanel extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel',
+              child: Text('Cancel',
                   style:
-                      TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+                      TextStyle(fontSize: 13, color: colors.textTertiary)),
             ),
             FilledButton(
               onPressed: selected == null

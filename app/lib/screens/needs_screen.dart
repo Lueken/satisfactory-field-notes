@@ -30,16 +30,17 @@ class _NeedsScreenState extends ConsumerState<NeedsScreen> {
   Widget build(BuildContext context) {
     final notes = ref.watch(notesProvider);
     final needs = notes.needs;
+    final colors = AppColors.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('STUFF YOU STILL NEED',
+          Text('STUFF YOU STILL NEED',
               style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF9CA3AF),
+                  color: colors.textTertiary,
                   letterSpacing: 1.5)),
           const SizedBox(height: 12),
           Row(
@@ -48,10 +49,10 @@ class _NeedsScreenState extends ConsumerState<NeedsScreen> {
                 child: TextField(
                   controller: _controller,
                   onSubmitted: (_) => _add(),
-                  style: const TextStyle(fontSize: 16),
-                  decoration: const InputDecoration(
+                  style: TextStyle(fontSize: 16, color: colors.textPrimary),
+                  decoration: InputDecoration(
                     hintText: 'e.g. screw sub-factory',
-                    hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                    hintStyle: TextStyle(color: colors.textTertiary),
                   ),
                 ),
               ),
@@ -74,20 +75,20 @@ class _NeedsScreenState extends ConsumerState<NeedsScreen> {
           const SizedBox(height: 16),
           Expanded(
             child: needs.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text('Nothing queued up.',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))))
+                        style: TextStyle(
+                            fontSize: 13, color: colors.textTertiary)))
                 : ListView.builder(
                     itemCount: needs.length,
                     itemBuilder: (context, i) {
                       final need = needs[i];
                       return Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                                color: Color(0xFFE7E5E4), width: 0.5),
+                                color: colors.borderSecondary, width: 0.5),
                           ),
                         ),
                         child: Row(
@@ -97,13 +98,13 @@ class _NeedsScreenState extends ConsumerState<NeedsScreen> {
                                     fontSize: 16, color: ficsitAmber)),
                             Expanded(
                               child: Text(need.text,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 15,
-                                      color: Color(0xFF1A1A1A))),
+                                      color: colors.textPrimary)),
                             ),
                             IconButton(
                               icon: const Icon(Icons.close, size: 18),
-                              color: const Color(0xFF9CA3AF),
+                              color: colors.textTertiary,
                               onPressed: () => ref
                                   .read(notesProvider.notifier)
                                   .deleteNeed(need.id),

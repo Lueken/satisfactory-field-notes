@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/production_node.dart';
 import '../theme/app_theme.dart';
 
@@ -23,12 +24,16 @@ class ProductionTree extends StatelessWidget {
   final ProductionNode root;
   final int beltRate;
   final void Function(ProductionNode node)? onEditOverclock;
+  final Set<String> collapsedSections;
+  final void Function(String itemClassName) onToggleSection;
 
   const ProductionTree({
     super.key,
     required this.root,
     this.beltRate = 0,
     this.onEditOverclock,
+    this.collapsedSections = const {},
+    required this.onToggleSection,
   });
 
   @override
@@ -42,6 +47,8 @@ class ProductionTree extends StatelessWidget {
             root: child,
             beltRate: beltRate,
             onEditOverclock: onEditOverclock,
+            expanded: !collapsedSections.contains(child.itemClassName),
+            onToggle: () => onToggleSection(child.itemClassName),
           ),
       ],
     );
@@ -56,6 +63,7 @@ class _RootHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -66,8 +74,8 @@ class _RootHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: ficsitAmber.withValues(alpha: 0.08),
-            border: const Border(
-              bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+            border: Border(
+              bottom: BorderSide(color: colors.borderSecondary, width: 0.5),
             ),
           ),
           child: Column(
@@ -75,10 +83,10 @@ class _RootHeader extends StatelessWidget {
             children: [
               Text(
                 '${_fmtCount(node.rate)} ${node.itemName}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
+                  color: colors.textPrimary,
                 ),
               ),
               if (node.machineName != null) ...[
@@ -101,7 +109,8 @@ class _RootHeader extends StatelessWidget {
                 ),
                 Text(
                   '${node.itemName} (${_fmtRate(node.rate)}/min)',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+                  style:
+                      TextStyle(fontSize: 13, color: colors.textTertiary),
                 ),
               ],
               if (beltRate > 0) _BeltWarning(rate: node.rate, beltRate: beltRate),
@@ -155,15 +164,16 @@ class _BeltWarning extends StatelessWidget {
   Widget build(BuildContext context) {
     if (rate <= beltRate) return const SizedBox.shrink();
     final beltsNeeded = (rate / beltRate).ceil();
+    const warnColor = Color(0xFFD97706);
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber, size: 12, color: Color(0xFFD97706)),
+          const Icon(Icons.warning_amber, size: 12, color: warnColor),
           const SizedBox(width: 4),
           Text(
             'needs $beltsNeeded belts',
-            style: const TextStyle(fontSize: 11, color: Color(0xFFD97706)),
+            style: const TextStyle(fontSize: 11, color: warnColor),
           ),
         ],
       ),
@@ -171,46 +181,47 @@ class _BeltWarning extends StatelessWidget {
   }
 }
 
-class _SubFactorySection extends StatefulWidget {
+class _SubFactorySection extends StatelessWidget {
   final ProductionNode root;
   final int beltRate;
   final void Function(ProductionNode node)? onEditOverclock;
+  final bool expanded;
+  final VoidCallback onToggle;
 
   const _SubFactorySection({
     required this.root,
     this.beltRate = 0,
     this.onEditOverclock,
+    required this.expanded,
+    required this.onToggle,
   });
 
   @override
-  State<_SubFactorySection> createState() => _SubFactorySectionState();
-}
-
-class _SubFactorySectionState extends State<_SubFactorySection> {
-  bool _expanded = true;
-
-  @override
   Widget build(BuildContext context) {
-    final node = widget.root;
+    final node = root;
     final hasChildren = node.children.isNotEmpty;
     final chain = _flattenWithDepth(node, 0);
+    final colors = AppColors.of(context);
+
+    void toggle() {
+      HapticFeedback.lightImpact();
+      onToggle();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header: machine name (collapsible, long-press to edit)
+        // Section header: machine name (collapsible)
         GestureDetector(
-          onTap: hasChildren
-              ? () => setState(() => _expanded = !_expanded)
-              : null,
-          onLongPress: widget.onEditOverclock != null && !node.isRawResource
-              ? () => widget.onEditOverclock!(node)
+          onTap: hasChildren ? toggle : null,
+          onLongPress: onEditOverclock != null && !node.isRawResource
+              ? () => onEditOverclock!(node)
               : null,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+                bottom: BorderSide(color: colors.borderSecondary, width: 0.5),
               ),
             ),
             child: Row(
@@ -219,11 +230,11 @@ class _SubFactorySectionState extends State<_SubFactorySection> {
                   width: 20,
                   child: hasChildren
                       ? Icon(
-                          _expanded
+                          expanded
                               ? Icons.expand_more
                               : Icons.chevron_right,
                           size: 18,
-                          color: const Color(0xFF9CA3AF),
+                          color: colors.textTertiary,
                         )
                       : null,
                 ),
@@ -232,42 +243,87 @@ class _SubFactorySectionState extends State<_SubFactorySection> {
                   child: _MachineItemBlock(
                     node: node,
                     isSectionHeader: true,
-                    beltRate: widget.beltRate,
+                    beltRate: beltRate,
                   ),
                 ),
+                if (onEditOverclock != null && !node.isRawResource)
+                  IconButton(
+                    icon: Icon(Icons.tune, size: 16,
+                        color: node.overclock != 100
+                            ? ficsitAmber
+                            : colors.textTertiary),
+                    tooltip: 'Overclock',
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
+                    onPressed: () => onEditOverclock!(node),
+                  ),
               ],
             ),
           ),
         ),
 
         // Flattened children
-        if (_expanded)
-          for (final entry in chain.skip(1))
-            GestureDetector(
-              onLongPress: widget.onEditOverclock != null &&
-                      !entry.node.isRawResource
-                  ? () => widget.onEditOverclock!(entry.node)
-                  : null,
-              child: Container(
-                padding: EdgeInsets.only(
-                  left: 40 + (entry.depth * 16.0),
-                  right: 16,
-                  top: 6,
-                  bottom: 6,
-                ),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFAFAF9),
-                  border: Border(
-                    bottom: BorderSide(color: Color(0xFFF0EFED), width: 0.5),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 180),
+          sizeCurve: Curves.easeInOut,
+          crossFadeState:
+              expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          firstChild: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final entry in chain.skip(1))
+                GestureDetector(
+                  onLongPress: onEditOverclock != null &&
+                          !entry.node.isRawResource
+                      ? () => onEditOverclock!(entry.node)
+                      : null,
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      left: 40 + (entry.depth * 16.0),
+                      right: 16,
+                      top: 6,
+                      bottom: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.rowAltBg,
+                      border: Border(
+                        bottom: BorderSide(
+                            color: colors.rowAltBorder, width: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _MachineItemBlock(
+                            node: entry.node,
+                            isSectionHeader: false,
+                            beltRate: beltRate,
+                          ),
+                        ),
+                        if (onEditOverclock != null &&
+                            !entry.node.isRawResource &&
+                            !entry.node.isSupplied)
+                          IconButton(
+                            icon: Icon(Icons.tune,
+                                size: 14,
+                                color: entry.node.overclock != 100
+                                    ? ficsitAmber
+                                    : colors.textTertiary),
+                            tooltip: 'Overclock',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                                minWidth: 28, minHeight: 28),
+                            onPressed: () => onEditOverclock!(entry.node),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-                child: _MachineItemBlock(
-                  node: entry.node,
-                  isSectionHeader: false,
-                  beltRate: widget.beltRate,
-                ),
-              ),
-            ),
+            ],
+          ),
+          secondChild: const SizedBox.shrink(),
+        ),
       ],
     );
   }
@@ -288,9 +344,11 @@ class _MachineItemBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     if (node.isSupplied) {
-      // Supplied item: show supply vs demand with blue accent
-      const suppliedColor = Color(0xFF185FA5);
+      const suppliedColor = Color(0xFF3B82F6);
+      const warnColor = Color(0xFFD97706);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -312,8 +370,8 @@ class _MachineItemBlock extends StatelessWidget {
               ),
               Text(
                 'needs ${_fmtRate(node.rate)}/min',
-                style: const TextStyle(
-                    fontSize: 12, color: Color(0xFF9CA3AF)),
+                style:
+                    TextStyle(fontSize: 12, color: colors.textTertiary),
               ),
             ],
           ),
@@ -321,8 +379,8 @@ class _MachineItemBlock extends StatelessWidget {
             padding: const EdgeInsets.only(left: 16, top: 2),
             child: Text(
               'supplied ${_fmtRate(node.suppliedAmount)}/min',
-              style: const TextStyle(
-                  fontSize: 11, color: Color(0xFF9CA3AF)),
+              style:
+                  TextStyle(fontSize: 11, color: colors.textTertiary),
             ),
           ),
           if (node.shortfall > 0)
@@ -331,12 +389,12 @@ class _MachineItemBlock extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(Icons.warning_amber,
-                      size: 12, color: Color(0xFFD97706)),
+                      size: 12, color: warnColor),
                   const SizedBox(width: 4),
                   Text(
                     'shortfall: ${_fmtRate(node.shortfall)}/min',
                     style: const TextStyle(
-                        fontSize: 11, color: Color(0xFFD97706)),
+                        fontSize: 11, color: warnColor),
                   ),
                 ],
               ),
@@ -346,7 +404,6 @@ class _MachineItemBlock extends StatelessWidget {
     }
 
     if (node.isRawResource) {
-      // Raw resource: just item name + rate
       return Row(
         children: [
           Expanded(
@@ -364,14 +421,13 @@ class _MachineItemBlock extends StatelessWidget {
             '${_fmtRate(node.rate)}/min',
             style: TextStyle(
               fontSize: isSectionHeader ? 13 : 12,
-              color: const Color(0xFF9CA3AF),
+              color: colors.textTertiary,
             ),
           ),
         ],
       );
     }
 
-    // Machine + item
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -384,8 +440,8 @@ class _MachineItemBlock extends StatelessWidget {
                   fontSize: isSectionHeader ? 14 : 13,
                   fontWeight: FontWeight.w600,
                   color: isSectionHeader
-                      ? const Color(0xFF1A1A1A)
-                      : const Color(0xFF6B7280),
+                      ? colors.textPrimary
+                      : colors.textSecondary,
                 ),
               ),
             ),
@@ -400,7 +456,7 @@ class _MachineItemBlock extends StatelessWidget {
           '${node.itemName} (${_fmtRate(node.rate)}/min)',
           style: TextStyle(
             fontSize: isSectionHeader ? 13 : 12,
-            color: const Color(0xFF9CA3AF),
+            color: colors.textTertiary,
           ),
         ),
         if (beltRate > 0)

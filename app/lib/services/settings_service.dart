@@ -65,6 +65,11 @@ class SettingsNotifier extends StateNotifier<GameSettings> {
     state = state.copyWith(advancedPlanner: advanced);
     _save();
   }
+
+  void setDarkMode(bool enabled) {
+    state = state.copyWith(darkMode: enabled);
+    _save();
+  }
 }
 
 final settingsProvider =

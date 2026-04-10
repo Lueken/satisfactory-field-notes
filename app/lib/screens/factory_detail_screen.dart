@@ -21,6 +21,7 @@ class FactoryDetailScreen extends ConsumerStatefulWidget {
 class _FactoryDetailScreenState extends ConsumerState<FactoryDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final Set<String> _collapsed = {};
 
   @override
   void initState() {
@@ -110,6 +111,14 @@ class _FactoryDetailScreenState extends ConsumerState<FactoryDetailScreen>
                     ProductionTree(
                       root: result,
                       beltRate: settings.beltRate,
+                      onToggleSection: (cn) => setState(() {
+                        if (_collapsed.contains(cn)) {
+                          _collapsed.remove(cn);
+                        } else {
+                          _collapsed.add(cn);
+                        }
+                      }),
+                      collapsedSections: _collapsed,
                     ),
                     ItemsList(root: result, gameData: data),
                     BuildingsList(root: result),

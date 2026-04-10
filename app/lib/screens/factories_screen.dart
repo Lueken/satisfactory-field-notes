@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/note_data.dart' as notes;
 import '../services/storage_service.dart';
@@ -51,24 +52,25 @@ class _FactoriesScreenState extends ConsumerState<FactoriesScreen> {
   Widget build(BuildContext context) {
     final notes = ref.watch(notesProvider);
     final factories = notes.factories;
+    final colors = AppColors.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('FACTORY REGISTRY',
+          Text('FACTORY REGISTRY',
               style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF9CA3AF),
+                  color: colors.textTertiary,
                   letterSpacing: 1.5)),
           const SizedBox(height: 12),
           Expanded(
             child: factories.isEmpty && !_showForm
-                ? const Center(
+                ? Center(
                     child: Text('No factories logged yet.',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))))
+                        style: TextStyle(
+                            fontSize: 13, color: colors.textTertiary)))
                 : ListView(
                     children: [
                       for (final f in factories) _FactoryRow(factory: f),
@@ -98,24 +100,25 @@ class _FactoriesScreenState extends ConsumerState<FactoriesScreen> {
   }
 
   Widget _buildForm() {
+    final colors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F4),
+        color: colors.bgSecondary,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(fontSize: 15),
+            style: TextStyle(fontSize: 15, color: colors.textPrimary),
             decoration: const InputDecoration(hintText: 'Factory name'),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _producesCtrl,
-            style: const TextStyle(fontSize: 15),
+            style: TextStyle(fontSize: 15, color: colors.textPrimary),
             decoration:
                 const InputDecoration(hintText: 'Produces (optional)'),
           ),
@@ -123,6 +126,11 @@ class _FactoriesScreenState extends ConsumerState<FactoriesScreen> {
           DropdownButtonFormField<String>(
             initialValue: _status,
             decoration: const InputDecoration(),
+            style: TextStyle(
+                fontSize: 15,
+                color: colors.textPrimary,
+                fontFamily: 'ShareTechMono'),
+            dropdownColor: colors.bgSecondary,
             items: ['wip', 'minimal', 'optimized']
                 .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                 .toList(),
@@ -147,8 +155,9 @@ class _FactoriesScreenState extends ConsumerState<FactoriesScreen> {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => setState(() => _showForm = false),
-            child: const Text('Cancel',
-                style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+            child: Text('Cancel',
+                style:
+                    TextStyle(fontSize: 13, color: colors.textTertiary)),
           ),
         ],
       ),
@@ -164,7 +173,7 @@ class _FactoryRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final f = factory;
     final style = _statusStyle[f.status] ?? _statusStyle['wip']!;
-
+    final colors = AppColors.of(context);
     final hasPlan = f.plannerData != null;
 
     return InkWell(
@@ -177,9 +186,9 @@ class _FactoryRow extends ConsumerWidget {
           : null,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+            bottom: BorderSide(color: colors.borderSecondary, width: 0.5),
           ),
         ),
         child: Row(
@@ -192,8 +201,8 @@ class _FactoryRow extends ConsumerWidget {
                     children: [
                       Flexible(
                         child: Text(f.name,
-                            style: const TextStyle(
-                                fontSize: 15, color: Color(0xFF1A1A1A))),
+                            style: TextStyle(
+                                fontSize: 15, color: colors.textPrimary)),
                       ),
                       if (hasPlan) ...[
                         const SizedBox(width: 6),
@@ -206,15 +215,17 @@ class _FactoryRow extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(f.produces,
-                          style: const TextStyle(
-                              fontSize: 13, color: Color(0xFF6B7280))),
+                          style: TextStyle(
+                              fontSize: 13, color: colors.textSecondary)),
                     ),
                 ],
               ),
             ),
           GestureDetector(
-            onTap: () =>
-                ref.read(notesProvider.notifier).cycleFactoryStatus(f.id),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              ref.read(notesProvider.notifier).cycleFactoryStatus(f.id);
+            },
             child: Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -231,7 +242,7 @@ class _FactoryRow extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 16),
-            color: const Color(0xFF9CA3AF),
+            color: colors.textTertiary,
             tooltip: 'Rename',
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -239,7 +250,7 @@ class _FactoryRow extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 18),
-            color: const Color(0xFF9CA3AF),
+            color: colors.textTertiary,
             onPressed: () =>
                 ref.read(notesProvider.notifier).deleteFactory(f.id),
           ),
@@ -252,29 +263,30 @@ class _FactoryRow extends ConsumerWidget {
   Future<void> _showRenameDialog(
       BuildContext context, WidgetRef ref, notes.Factory f) async {
     final ctrl = TextEditingController(text: f.name);
+    final colors = AppColors.of(context);
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Rename factory',
             style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 15)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          style: const TextStyle(fontSize: 15),
-          decoration: const InputDecoration(
+          style: TextStyle(fontSize: 15, color: colors.textPrimary),
+          decoration: InputDecoration(
             labelText: 'Factory name',
             labelStyle:
-                TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                TextStyle(fontSize: 12, color: colors.textTertiary),
           ),
           onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel',
-                style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+            child: Text('Cancel',
+                style:
+                    TextStyle(fontSize: 13, color: colors.textTertiary)),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),

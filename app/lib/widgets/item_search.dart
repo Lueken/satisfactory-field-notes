@@ -63,6 +63,7 @@ class _ItemSearchState extends State<ItemSearch> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -70,11 +71,11 @@ class _ItemSearchState extends State<ItemSearch> {
           controller: _controller,
           focusNode: _focusNode,
           onChanged: _onChanged,
-          style: const TextStyle(fontSize: 16),
-          decoration: const InputDecoration(
+          style: TextStyle(fontSize: 16, color: colors.textPrimary),
+          decoration: InputDecoration(
             hintText: 'Search items...',
-            hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-            prefixIcon: Icon(Icons.search, color: Color(0xFF9CA3AF)),
+            hintStyle: TextStyle(color: colors.textTertiary),
+            prefixIcon: Icon(Icons.search, color: colors.textTertiary),
           ),
         ),
         if (_showResults)
@@ -82,9 +83,9 @@ class _ItemSearchState extends State<ItemSearch> {
             constraints: const BoxConstraints(maxHeight: 280),
             margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F4),
+              color: colors.bgSecondary,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE7E5E4), width: 0.5),
+              border: Border.all(color: colors.borderSecondary, width: 0.5),
             ),
             child: ListView.builder(
               shrinkWrap: true,
@@ -100,7 +101,7 @@ class _ItemSearchState extends State<ItemSearch> {
                       item.name,
                       style: TextStyle(
                         fontSize: 14,
-                        color: item.liquid ? ficsitAmber : const Color(0xFF1A1A1A),
+                        color: item.liquid ? ficsitAmber : colors.textPrimary,
                       ),
                     ),
                   ),

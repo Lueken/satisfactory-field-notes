@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
+import 'services/settings_service.dart';
 import 'services/storage_service.dart';
 import 'screens/planner_screen.dart';
 import 'screens/wiki_screen.dart';
@@ -15,14 +17,17 @@ void main() {
   runApp(const ProviderScope(child: FieldNotesApp()));
 }
 
-class FieldNotesApp extends StatelessWidget {
+class FieldNotesApp extends ConsumerWidget {
   const FieldNotesApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = ref.watch(settingsProvider).darkMode;
     return MaterialApp(
       title: 'FICSIT Field Notes',
       theme: appTheme,
+      darkTheme: darkTheme,
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       debugShowCheckedModeBanner: false,
       home: const AuthGate(),
     );
@@ -205,7 +210,10 @@ class _AppShellState extends ConsumerState<AppShell> {
       body: _screens[_tab],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
+        onDestinationSelected: (i) {
+          HapticFeedback.selectionClick();
+          setState(() => _tab = i);
+        },
         height: 64,
         indicatorColor: ficsitAmber.withValues(alpha: 0.15),
         destinations: const [
@@ -224,13 +232,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Sign out?',
             style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 16)),
-        content: const Text(
+        content: Text(
           'Your notes are synced to the cloud. You can sign back in anytime.',
-          style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+          style: TextStyle(
+              fontSize: 13, color: AppColors.of(context).textSecondary),
         ),
         actions: [
           TextButton(

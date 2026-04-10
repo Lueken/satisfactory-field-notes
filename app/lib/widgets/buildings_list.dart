@@ -14,12 +14,13 @@ class BuildingsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final buildings = root.buildingsList;
     final totalPower = root.totalTreePower;
+    final colors = AppColors.of(context);
 
     if (buildings.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Only raw resources needed.',
-          style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+          style: TextStyle(fontSize: 13, color: colors.textTertiary),
         ),
       );
     }
@@ -27,14 +28,13 @@ class BuildingsList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
-        // Total power header
         if (totalPower > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: ficsitAmber.withValues(alpha: 0.08),
-              border: const Border(
-                bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+              border: Border(
+                bottom: BorderSide(color: colors.borderSecondary, width: 0.5),
               ),
             ),
             child: Row(
@@ -52,14 +52,12 @@ class BuildingsList extends StatelessWidget {
               ],
             ),
           ),
-
-        // Building rows
         for (final b in buildings)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+                bottom: BorderSide(color: colors.borderSecondary, width: 0.5),
               ),
             ),
             child: Row(
@@ -84,18 +82,18 @@ class BuildingsList extends StatelessWidget {
                 Expanded(
                   child: Text(
                     b.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF1A1A1A),
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
                 if (b.powerEach > 0)
                   Text(
                     '${_fmtPower(b.powerEach * b.count)} MW',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF6B7280),
+                      color: colors.textSecondary,
                     ),
                   ),
               ],

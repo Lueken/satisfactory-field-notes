@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/game_data.dart';
 import '../services/game_data_service.dart';
@@ -26,6 +27,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final gameData = ref.watch(gameDataProvider);
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -74,23 +76,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
+              _SectionLabel('APPEARANCE'),
+              const SizedBox(height: 8),
+              _ToggleRow(
+                label: 'Dark mode',
+                subtitle: 'Easier on pioneer eyes at night',
+                value: settings.darkMode,
+                onChanged: (v) {
+                  HapticFeedback.selectionClick();
+                  ref.read(settingsProvider.notifier).setDarkMode(v);
+                },
+              ),
+
+              const SizedBox(height: 24),
               _SectionLabel('MODIFIERS'),
               const SizedBox(height: 8),
               _ToggleRow(
                 label: 'Overclocking',
                 subtitle: 'Allow overclock adjustments',
                 value: settings.overclockingEnabled,
-                onChanged: (v) => ref
-                    .read(settingsProvider.notifier)
-                    .setOverclocking(v),
+                onChanged: (v) {
+                  HapticFeedback.selectionClick();
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setOverclocking(v);
+                },
               ),
               const SizedBox(height: 8),
               _ToggleRow(
                 label: 'Somersloop',
                 subtitle: '2x production, higher power',
                 value: settings.somersloopEnabled,
-                onChanged: (v) =>
-                    ref.read(settingsProvider.notifier).setSomersloop(v),
+                onChanged: (v) {
+                  HapticFeedback.selectionClick();
+                  ref.read(settingsProvider.notifier).setSomersloop(v);
+                },
               ),
 
               const SizedBox(height: 24),
@@ -107,21 +127,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Search bar
               TextField(
                 controller: _searchController,
                 onChanged: (val) => setState(() => _search = val),
-                style: const TextStyle(fontSize: 14),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 14, color: colors.textPrimary),
+                decoration: InputDecoration(
                   hintText: 'Search alternates...',
-                  hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                  prefixIcon: Icon(Icons.search, size: 18, color: Color(0xFF9CA3AF)),
+                  hintStyle: TextStyle(color: colors.textTertiary),
+                  prefixIcon:
+                      Icon(Icons.search, size: 18, color: colors.textTertiary),
                   isDense: true,
                 ),
               ),
               const SizedBox(height: 8),
 
-              // Select all / clear buttons
               Row(
                 children: [
                   Expanded(
@@ -132,14 +151,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               alternates.map((r) => r.className).toSet()),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: const BorderSide(
-                            color: Color(0xFFE7E5E4), width: 0.5),
+                        side: BorderSide(
+                            color: colors.borderSecondary, width: 0.5),
                       ),
-                      child: const Text('Unlock all',
+                      child: Text('Unlock all',
                           style: TextStyle(
                               fontSize: 12,
                               fontFamily: 'ShareTechMono',
-                              color: Color(0xFF6B7280))),
+                              color: colors.textSecondary)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -150,21 +169,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           .setAllAlternates({}),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: const BorderSide(
-                            color: Color(0xFFE7E5E4), width: 0.5),
+                        side: BorderSide(
+                            color: colors.borderSecondary, width: 0.5),
                       ),
-                      child: const Text('Clear all',
+                      child: Text('Clear all',
                           style: TextStyle(
                               fontSize: 12,
                               fontFamily: 'ShareTechMono',
-                              color: Color(0xFF6B7280))),
+                              color: colors.textSecondary)),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
 
-              // Alternate recipes list
               for (final recipe in filtered)
                 _AlternateRow(
                   recipe: recipe,
@@ -187,14 +205,17 @@ class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
 
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 11,
-          color: Color(0xFF9CA3AF),
-          letterSpacing: 1.5,
-        ),
-      );
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 11,
+        color: colors.textTertiary,
+        letterSpacing: 1.5,
+      ),
+    );
+  }
 }
 
 class _TierSelector extends StatelessWidget {
@@ -214,12 +235,13 @@ class _TierSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Row(
       children: [
         Expanded(
           flex: 1,
           child: Text(label,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A))),
+              style: TextStyle(fontSize: 14, color: colors.textPrimary)),
         ),
         Expanded(
           flex: 2,
@@ -227,6 +249,8 @@ class _TierSelector extends StatelessWidget {
             initialValue: value,
             isDense: true,
             decoration: const InputDecoration(isDense: true),
+            style: TextStyle(fontSize: 14, color: colors.textPrimary, fontFamily: 'ShareTechMono'),
+            dropdownColor: colors.bgSecondary,
             items: [
               for (var i = 0; i < options.length; i++)
                 DropdownMenuItem(value: options[i], child: Text(labels[i])),
@@ -256,6 +280,7 @@ class _ToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Row(
       children: [
         Expanded(
@@ -263,11 +288,11 @@ class _ToggleRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style: const TextStyle(
-                      fontSize: 14, color: Color(0xFF1A1A1A))),
+                  style:
+                      TextStyle(fontSize: 14, color: colors.textPrimary)),
               Text(subtitle,
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF9CA3AF))),
+                  style:
+                      TextStyle(fontSize: 12, color: colors.textTertiary)),
             ],
           ),
         ),
@@ -294,8 +319,8 @@ class _AlternateRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Clean up the name: "Alternate: Pure Iron Ingot" -> "Pure Iron Ingot"
     final cleanName = recipe.name.replaceFirst(RegExp(r'^Alternate:\s*'), '');
+    final colors = AppColors.of(context);
 
     return InkWell(
       onTap: onTap,
@@ -314,12 +339,16 @@ class _AlternateRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(cleanName,
-                      style: const TextStyle(
-                          fontSize: 13, color: Color(0xFF1A1A1A))),
+                      style: TextStyle(
+                          fontSize: 13, color: colors.textPrimary)),
                   Text(
-                    recipe.products.map((p) => p.item.replaceAll('Desc_', '').replaceAll('_C', '')).join(', '),
-                    style: const TextStyle(
-                        fontSize: 11, color: Color(0xFF9CA3AF)),
+                    recipe.products
+                        .map((p) => p.item
+                            .replaceAll('Desc_', '')
+                            .replaceAll('_C', ''))
+                        .join(', '),
+                    style:
+                        TextStyle(fontSize: 11, color: colors.textTertiary),
                   ),
                 ],
               ),

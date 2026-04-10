@@ -14,6 +14,7 @@ class ItemsList extends StatelessWidget {
     final items = root.flatItems();
     final sorted = items.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
+    final colors = AppColors.of(context);
 
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 32),
@@ -26,9 +27,9 @@ class ItemsList extends StatelessWidget {
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+              bottom: BorderSide(color: colors.borderSecondary, width: 0.5),
             ),
           ),
           child: Row(
@@ -38,15 +39,15 @@ class ItemsList extends StatelessWidget {
                   name,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isRaw ? ficsitAmber : const Color(0xFF1A1A1A),
+                    color: isRaw ? ficsitAmber : colors.textPrimary,
                   ),
                 ),
               ),
               Text(
                 '${rate.toStringAsFixed(rate == rate.roundToDouble() ? 0 : 1)} /min',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF6B7280),
+                  color: colors.textSecondary,
                 ),
               ),
             ],

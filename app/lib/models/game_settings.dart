@@ -17,6 +17,9 @@ class GameSettings {
   /// Planner mode: true = advanced, false = simple.
   final bool advancedPlanner;
 
+  /// UI theme: true = dark, false = light.
+  final bool darkMode;
+
   const GameSettings({
     this.unlockedAlternates = const {},
     this.beltTier = 1,
@@ -24,6 +27,7 @@ class GameSettings {
     this.overclockingEnabled = false,
     this.somersloopEnabled = false,
     this.advancedPlanner = false,
+    this.darkMode = false,
   });
 
   /// Belt throughput caps in items/min
@@ -45,6 +49,7 @@ class GameSettings {
     bool? overclockingEnabled,
     bool? somersloopEnabled,
     bool? advancedPlanner,
+    bool? darkMode,
   }) =>
       GameSettings(
         unlockedAlternates: unlockedAlternates ?? this.unlockedAlternates,
@@ -53,6 +58,7 @@ class GameSettings {
         overclockingEnabled: overclockingEnabled ?? this.overclockingEnabled,
         somersloopEnabled: somersloopEnabled ?? this.somersloopEnabled,
         advancedPlanner: advancedPlanner ?? this.advancedPlanner,
+        darkMode: darkMode ?? this.darkMode,
       );
 
   Map<String, dynamic> toJson() => {
@@ -62,6 +68,7 @@ class GameSettings {
         'overclockingEnabled': overclockingEnabled,
         'somersloopEnabled': somersloopEnabled,
         'advancedPlanner': advancedPlanner,
+        'darkMode': darkMode,
       };
 
   factory GameSettings.fromJson(Map<String, dynamic> json) => GameSettings(
@@ -74,5 +81,6 @@ class GameSettings {
         overclockingEnabled: json['overclockingEnabled'] as bool? ?? false,
         somersloopEnabled: json['somersloopEnabled'] as bool? ?? false,
         advancedPlanner: json['advancedPlanner'] as bool? ?? false,
+        darkMode: json['darkMode'] as bool? ?? false,
       );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
+import '../theme/app_theme.dart';
 
 class ScratchScreen extends ConsumerWidget {
   const ScratchScreen({super.key});
@@ -8,16 +9,17 @@ class ScratchScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notes = ref.watch(notesProvider);
+    final colors = AppColors.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('SCRATCH PAD',
+          Text('SCRATCH PAD',
               style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF9CA3AF),
+                  color: colors.textTertiary,
                   letterSpacing: 1.5)),
           const SizedBox(height: 12),
           Expanded(
@@ -28,21 +30,23 @@ class ScratchScreen extends ConsumerWidget {
               maxLines: null,
               expands: true,
               textAlignVertical: TextAlignVertical.top,
-              style: const TextStyle(fontSize: 15, height: 1.6),
-              decoration: const InputDecoration(
+              style: TextStyle(
+                  fontSize: 15, height: 1.6, color: colors.textPrimary),
+              decoration: InputDecoration(
                 hintText: 'ratios, counts, half-formed plans...',
-                hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                hintStyle: TextStyle(color: colors.textTertiary),
                 border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFFE7E5E4), width: 0.5),
+                  borderSide:
+                      BorderSide(color: colors.borderSecondary, width: 0.5),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          const Align(
+          Align(
             alignment: Alignment.centerRight,
             child: Text('saves automatically',
-                style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+                style: TextStyle(fontSize: 11, color: colors.textTertiary)),
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
@@ -30,16 +31,17 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
   Widget build(BuildContext context) {
     final notes = ref.watch(notesProvider);
     final tasks = notes.session;
+    final colors = AppColors.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('THIS SESSION',
+          Text('THIS SESSION',
               style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF9CA3AF),
+                  color: colors.textTertiary,
                   letterSpacing: 1.5)),
           const SizedBox(height: 12),
           Row(
@@ -48,10 +50,10 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                 child: TextField(
                   controller: _controller,
                   onSubmitted: (_) => _add(),
-                  style: const TextStyle(fontSize: 16),
-                  decoration: const InputDecoration(
+                  style: TextStyle(fontSize: 16, color: colors.textPrimary),
+                  decoration: InputDecoration(
                     hintText: "What's the next small step?",
-                    hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                    hintStyle: TextStyle(color: colors.textTertiary),
                   ),
                 ),
               ),
@@ -74,29 +76,32 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           const SizedBox(height: 16),
           Expanded(
             child: tasks.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text('No tasks yet. Keep them small and specific.',
-                        style:
-                            TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))))
+                        style: TextStyle(
+                            fontSize: 13, color: colors.textTertiary)))
                 : ListView.builder(
                     itemCount: tasks.length,
                     itemBuilder: (context, i) {
                       final task = tasks[i];
                       return Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                                color: Color(0xFFE7E5E4), width: 0.5),
+                                color: colors.borderSecondary, width: 0.5),
                           ),
                         ),
                         child: Row(
                           children: [
                             Checkbox(
                               value: task.done,
-                              onChanged: (_) => ref
-                                  .read(notesProvider.notifier)
-                                  .toggleTask(task.id),
+                              onChanged: (_) {
+                                HapticFeedback.lightImpact();
+                                ref
+                                    .read(notesProvider.notifier)
+                                    .toggleTask(task.id);
+                              },
                               activeColor: ficsitAmber,
                             ),
                             Expanded(
@@ -105,8 +110,8 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                 style: TextStyle(
                                   fontSize: 15,
                                   color: task.done
-                                      ? const Color(0xFF9CA3AF)
-                                      : const Color(0xFF1A1A1A),
+                                      ? colors.textTertiary
+                                      : colors.textPrimary,
                                   decoration: task.done
                                       ? TextDecoration.lineThrough
                                       : null,
@@ -115,7 +120,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.close, size: 18),
-                              color: const Color(0xFF9CA3AF),
+                              color: colors.textTertiary,
                               onPressed: () => ref
                                   .read(notesProvider.notifier)
                                   .deleteTask(task.id),
@@ -134,9 +139,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                 child: TextButton(
                   onPressed: () =>
                       ref.read(notesProvider.notifier).clearCompleted(),
-                  child: const Text('Clear completed',
-                      style:
-                          TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+                  child: Text('Clear completed',
+                      style: TextStyle(
+                          fontSize: 13, color: colors.textTertiary)),
                 ),
               ),
             ),
