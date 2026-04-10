@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/game_data.dart';
 import '../services/game_data_service.dart';
 import '../services/settings_service.dart';
@@ -191,10 +192,235 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       .read(settingsProvider.notifier)
                       .toggleAlternate(recipe.className),
                 ),
+
+              const SizedBox(height: 32),
+              _SectionLabel('SUPPORT THE APP'),
+              const SizedBox(height: 8),
+              Text(
+                'FICSIT Field Notes is free. If it saves you time, consider tossing a few credits to the engineer.',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: colors.textTertiary,
+                    height: 1.5),
+              ),
+              const SizedBox(height: 12),
+              _LinkRow(
+                icon: Icons.coffee,
+                label: 'Ko-Fi',
+                subtitle: 'ko-fi.com/lgdllc',
+                onTap: () => launchUrl(
+                    Uri.parse('https://ko-fi.com/lgdllc'),
+                    mode: LaunchMode.externalApplication),
+              ),
+              const SizedBox(height: 8),
+              _BitcoinAddressRow(
+                address: 'bc1qg2jqdlrtkfqkggwfg25xr2s57vcjpf03hymjxr',
+              ),
+
+              const SizedBox(height: 32),
+              _SectionLabel('LEGAL'),
+              const SizedBox(height: 8),
+              _LinkRow(
+                icon: Icons.description_outlined,
+                label: 'Terms of Service',
+                onTap: () => launchUrl(
+                    Uri.parse(
+                        'https://lueken-good.design/ficsit-field-notes/terms'),
+                    mode: LaunchMode.externalApplication),
+              ),
+              const SizedBox(height: 8),
+              _LinkRow(
+                icon: Icons.privacy_tip_outlined,
+                label: 'Privacy Policy',
+                onTap: () => launchUrl(
+                    Uri.parse(
+                        'https://lueken-good.design/ficsit-field-notes/privacy'),
+                    mode: LaunchMode.externalApplication),
+              ),
+
+              const SizedBox(height: 24),
+              Center(
+                child: Text(
+                  'FICSIT Field Notes  ·  v0.1.0',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.textTertiary,
+                    fontFamily: 'ShareTechMono',
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Center(
+                child: Text(
+                  'Unofficial fan project · Not affiliated with Coffee Stain Studios',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: colors.textTertiary,
+                  ),
+                ),
+              ),
               const SizedBox(height: 32),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _LinkRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final VoidCallback onTap;
+
+  const _LinkRow({
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: colors.bgSecondary,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.borderSecondary, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: ficsitAmber),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textPrimary,
+                          fontFamily: 'ShareTechMono')),
+                  if (subtitle != null)
+                    Text(subtitle!,
+                        style: TextStyle(
+                            fontSize: 11, color: colors.textTertiary)),
+                ],
+              ),
+            ),
+            Icon(Icons.open_in_new,
+                size: 14, color: colors.textTertiary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BitcoinAddressRow extends StatelessWidget {
+  final String address;
+  const _BitcoinAddressRow({required this.address});
+
+  Future<void> _openInWallet(BuildContext context) async {
+    final uri = Uri.parse('bitcoin:$address');
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      _copy(context);
+    }
+  }
+
+  void _copy(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: address));
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Bitcoin address copied'),
+        backgroundColor: ficsitAmber,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.bgSecondary,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.borderSecondary, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.currency_bitcoin,
+                  size: 18, color: ficsitAmber),
+              const SizedBox(width: 8),
+              Text(
+                'Bitcoin',
+                style: TextStyle(
+                    fontSize: 14,
+                    color: colors.textPrimary,
+                    fontFamily: 'ShareTechMono'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Tappable address chip
+          InkWell(
+            onTap: () => _openInWallet(context),
+            onLongPress: () => _copy(context),
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: colors.bgTertiary,
+                borderRadius: BorderRadius.circular(6),
+                border:
+                    Border.all(color: colors.borderSecondary, width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      address,
+                      style: TextStyle(
+                        fontFamily: 'ShareTechMono',
+                        fontSize: 11,
+                        color: colors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _copy(context),
+                    child: Icon(Icons.copy,
+                        size: 14, color: colors.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Tap to open in wallet · long-press or copy icon to copy',
+            style: TextStyle(
+                fontSize: 10, color: colors.textTertiary),
+          ),
+        ],
       ),
     );
   }
