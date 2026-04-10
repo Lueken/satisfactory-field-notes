@@ -8,10 +8,16 @@ class PlannerEngine {
   /// Overclock per item class (1-250). Default 100.
   final Map<String, double> overclocks;
 
+  /// Items supplied from external sources.
+  /// Key = item className, value = items/min available.
+  /// Constrained items become supplied leaf nodes (no production chain).
+  final Map<String, double> inputConstraints;
+
   const PlannerEngine(
     this.data, {
     this.unlockedAlternates = const {},
     this.overclocks = const {},
+    this.inputConstraints = const {},
   });
 
   static const _machineNames = {
@@ -32,6 +38,19 @@ class PlannerEngine {
       {int depth = 0, Set<String>? visited}) {
     visited ??= {};
     final itemName = data.itemName(itemClassName);
+
+    // Check input constraint first — supplied items become leaf nodes
+    // regardless of what recipe exists for them. Only applies to non-root
+    // (depth > 0) so users can still plan a constrained item as the target.
+    if (depth > 0 && inputConstraints.containsKey(itemClassName)) {
+      return ProductionNode(
+        itemClassName: itemClassName,
+        itemName: itemName,
+        rate: desiredRate,
+        isSupplied: true,
+        suppliedAmount: inputConstraints[itemClassName]!,
+      );
+    }
 
     if (depth > 20 || visited.contains(itemClassName)) {
       return ProductionNode(

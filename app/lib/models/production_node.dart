@@ -3,7 +3,7 @@ import 'dart:math' as math;
 class ProductionNode {
   final String itemClassName;
   final String itemName;
-  final double rate; // items per minute
+  final double rate; // items per minute (demand)
   final String? machineName;
   final String? machineClassName;
   final double machineCount; // fractional (e.g., 3.5 constructors)
@@ -12,6 +12,8 @@ class ProductionNode {
   final String? recipeName;
   final double? craftTime;
   final bool isRawResource;
+  final bool isSupplied; // item is constrained (comes from external source)
+  final double suppliedAmount; // how much is actually supplied (if constrained)
   final List<ProductionNode> children;
 
   const ProductionNode({
@@ -26,8 +28,16 @@ class ProductionNode {
     this.recipeName,
     this.craftTime,
     this.isRawResource = false,
+    this.isSupplied = false,
+    this.suppliedAmount = 0,
     this.children = const [],
   });
+
+  /// True if supply can meet demand
+  bool get isFullySupplied => isSupplied && suppliedAmount >= rate;
+
+  /// Shortfall in items/min (positive when supply < demand)
+  double get shortfall => isSupplied ? (rate - suppliedAmount).clamp(0, double.infinity) : 0;
 
   int get machineCountCeil => machineCount.ceil();
 

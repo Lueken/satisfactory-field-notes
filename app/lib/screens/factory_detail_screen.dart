@@ -68,14 +68,8 @@ class _FactoryDetailScreenState extends ConsumerState<FactoryDetailScreen>
           final itemClassName = pd['itemClassName'] as String?;
           final rate = (pd['rate'] as num?)?.toDouble() ?? 1;
           final advanced = pd['advanced'] as bool? ?? false;
-          final savedOverclocks = <String, double>{};
-          final rawOc = pd['overclocks'];
-          if (rawOc is Map) {
-            for (final entry in rawOc.entries) {
-              final v = entry.value;
-              if (v is num) savedOverclocks[entry.key.toString()] = v.toDouble();
-            }
-          }
+          final savedOverclocks = _parseDoubleMap(pd['overclocks']);
+          final savedConstraints = _parseDoubleMap(pd['inputConstraints']);
           if (itemClassName == null) {
             return const Center(
               child: Text('Missing item data in saved plan.',
@@ -88,6 +82,7 @@ class _FactoryDetailScreenState extends ConsumerState<FactoryDetailScreen>
             data,
             unlockedAlternates: settings.unlockedAlternates,
             overclocks: advanced ? savedOverclocks : const {},
+            inputConstraints: advanced ? savedConstraints : const {},
           );
           final result = engine.calculate(itemClassName, rate);
 
@@ -126,5 +121,16 @@ class _FactoryDetailScreenState extends ConsumerState<FactoryDetailScreen>
         },
       ),
     );
+  }
+
+  Map<String, double> _parseDoubleMap(dynamic raw) {
+    final out = <String, double>{};
+    if (raw is Map) {
+      for (final entry in raw.entries) {
+        final v = entry.value;
+        if (v is num) out[entry.key.toString()] = v.toDouble();
+      }
+    }
+    return out;
   }
 }

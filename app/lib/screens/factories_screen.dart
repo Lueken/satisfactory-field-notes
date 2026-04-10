@@ -230,6 +230,14 @@ class _FactoryRow extends ConsumerWidget {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 16),
+            color: const Color(0xFF9CA3AF),
+            tooltip: 'Rename',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: () => _showRenameDialog(context, ref, f),
+          ),
+          IconButton(
             icon: const Icon(Icons.close, size: 18),
             color: const Color(0xFF9CA3AF),
             onPressed: () =>
@@ -239,5 +247,47 @@ class _FactoryRow extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showRenameDialog(
+      BuildContext context, WidgetRef ref, notes.Factory f) async {
+    final ctrl = TextEditingController(text: f.name);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Rename factory',
+            style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 15)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: const TextStyle(fontSize: 15),
+          decoration: const InputDecoration(
+            labelText: 'Factory name',
+            labelStyle:
+                TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+          ),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel',
+                style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+            style: FilledButton.styleFrom(backgroundColor: ficsitAmber),
+            child: const Text('Save',
+                style:
+                    TextStyle(fontSize: 13, fontFamily: 'ShareTechMono')),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty && result != f.name) {
+      ref.read(notesProvider.notifier).renameFactory(f.id, result);
+    }
   }
 }

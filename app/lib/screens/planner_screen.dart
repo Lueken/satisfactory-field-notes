@@ -26,6 +26,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   GameItem? _selectedItem;
   ProductionNode? _result;
   final Map<String, double> _overclocks = {};
+  final Map<String, double> _inputConstraints = {};
+  bool _showInputs = false;
 
   bool get _advanced => ref.read(settingsProvider).advancedPlanner;
 
@@ -134,11 +136,66 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  void _saveAsFactory(WidgetRef ref) {
+  Future<void> _saveAsFactory(WidgetRef ref) async {
     if (_result == null || _selectedItem == null) return;
     final rate = _rateController.text;
+    final nameCtrl = TextEditingController(text: _selectedItem!.name);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Save as factory',
+            style: TextStyle(fontFamily: 'ShareTechMono', fontSize: 15)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              style: const TextStyle(fontSize: 15),
+              decoration: const InputDecoration(
+                labelText: 'Factory name',
+                labelStyle:
+                    TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+              ),
+              onSubmitted: (_) => Navigator.of(ctx).pop(true),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Producing $rate/min',
+              style:
+                  const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel',
+                style:
+                    TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: ficsitAmber),
+            child: const Text('Save',
+                style: TextStyle(
+                    fontSize: 13, fontFamily: 'ShareTechMono')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    final name = nameCtrl.text.trim().isNotEmpty
+        ? nameCtrl.text.trim()
+        : _selectedItem!.name;
+
     ref.read(notesProvider.notifier).addFactory(
-          _selectedItem!.name,
+          name,
           '$rate/min',
           'wip',
           plannerData: {
@@ -146,11 +203,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             'rate': double.tryParse(rate) ?? 1,
             'advanced': _advanced,
             'overclocks': _overclocks,
+            'inputConstraints': _inputConstraints,
           },
         );
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Saved ${_selectedItem!.name} to factories'),
+        content: Text('Saved "$name" to factories'),
         backgroundColor: ficsitAmber,
         duration: const Duration(seconds: 2),
       ),
@@ -166,6 +225,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       data,
       unlockedAlternates: settings.unlockedAlternates,
       overclocks: _advanced ? _overclocks : const {},
+      inputConstraints: _advanced ? _inputConstraints : const {},
     );
     setState(() {
       _result = engine.calculate(_selectedItem!.className, rate);
@@ -414,6 +474,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   onSelected: (item) {
                     _selectedItem = item;
                     _overclocks.clear();
+                    _inputConstraints.clear();
                     _calculate(data);
                   },
                 ),
@@ -427,11 +488,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                             decimal: true),
                         style: const TextStyle(fontSize: 16),
                         decoration: const InputDecoration(
-                          hintText: 'Items per minute',
+                          hintText: 'rate',
                           hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
                           suffixText: '/min',
                           suffixStyle: TextStyle(
-                              fontSize: 13, color: Color(0xFF9CA3AF)),
+                              fontSize: 12, color: Color(0xFF9CA3AF)),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 14),
                         ),
                         onSubmitted: (_) => _calculate(data),
                       ),
@@ -451,6 +514,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                             style: TextStyle(fontFamily: 'ShareTechMono')),
                       ),
                     ),
+                    if (_advanced && _result != null) ...[
+                      const SizedBox(width: 8),
+                      _InputsButton(
+                        count: _inputConstraints.length,
+                        expanded: _showInputs,
+                        onTap: () => setState(() => _showInputs = !_showInputs),
+                      ),
+                    ],
                   ],
                 ),
                 if (_advanced && _result != null)
@@ -461,6 +532,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       style: const TextStyle(
                           fontSize: 11, color: Color(0xFF9CA3AF)),
                     ),
+                  ),
+                if (_advanced && _result != null && _showInputs)
+                  _InputsPanel(
+                    data: data,
+                    constraints: _inputConstraints,
+                    onAdd: (item, rate) {
+                      setState(() => _inputConstraints[item.className] = rate);
+                      _calculate(data);
+                    },
+                    onRemove: (className) {
+                      setState(() => _inputConstraints.remove(className));
+                      _calculate(data);
+                    },
                   ),
               ],
             ),
@@ -587,6 +671,214 @@ class _ModeToggle extends StatelessWidget {
             color: active ? Colors.white : const Color(0xFF6B7280),
             letterSpacing: 0.5,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InputsButton extends StatelessWidget {
+  final int count;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  const _InputsButton({
+    required this.count,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(
+          expanded ? Icons.expand_less : Icons.input,
+          size: 14,
+          color: const Color(0xFF185FA5),
+        ),
+        label: Text(
+          count > 0 ? 'Inputs ($count)' : 'Inputs',
+          style: const TextStyle(
+              fontSize: 12,
+              fontFamily: 'ShareTechMono',
+              color: Color(0xFF185FA5)),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFFD0D7DE), width: 0.5),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+}
+
+class _InputsPanel extends StatelessWidget {
+  final GameData data;
+  final Map<String, double> constraints;
+  final void Function(GameItem item, double rate) onAdd;
+  final void Function(String className) onRemove;
+
+  const _InputsPanel({
+    required this.data,
+    required this.constraints,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F4),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE7E5E4), width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('SUPPLIED INPUTS',
+              style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF9CA3AF),
+                  letterSpacing: 1.5)),
+          const SizedBox(height: 6),
+          if (constraints.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                'No supplied inputs. Add one to skip building production for that item.',
+                style: TextStyle(
+                    fontSize: 11, color: Color(0xFF9CA3AF)),
+              ),
+            ),
+          for (final entry in constraints.entries)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      data.itemName(entry.key),
+                      style: const TextStyle(
+                          fontSize: 13, color: Color(0xFF185FA5)),
+                    ),
+                  ),
+                  Text(
+                    '${entry.value == entry.value.roundToDouble() ? entry.value.toStringAsFixed(0) : entry.value.toStringAsFixed(1)}/min',
+                    style: const TextStyle(
+                        fontSize: 13, color: Color(0xFF6B7280)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 14),
+                    color: const Color(0xFF9CA3AF),
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 26, minHeight: 26),
+                    onPressed: () => onRemove(entry.key),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 4),
+          OutlinedButton.icon(
+            onPressed: () => _showAddDialog(context),
+            icon: const Icon(Icons.add, size: 14),
+            label: const Text('Add supplied input',
+                style: TextStyle(
+                    fontSize: 12, fontFamily: 'ShareTechMono')),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF185FA5),
+              side: const BorderSide(color: Color(0xFFD0D7DE), width: 0.5),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddDialog(BuildContext context) async {
+    GameItem? selected;
+    final rateCtrl = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+          title: const Text('Add supplied input',
+              style: TextStyle(
+                  fontFamily: 'ShareTechMono', fontSize: 15)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ItemSearch(
+                  items: data.searchableItems,
+                  onSelected: (item) {
+                    setDialogState(() => selected = item);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: rateCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(fontSize: 16),
+                  decoration: const InputDecoration(
+                    hintText: 'Rate available',
+                    hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                    suffixText: '/min',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'The planner will treat this item as supplied and skip building production for it.',
+                  style: TextStyle(
+                      fontSize: 11, color: Color(0xFF9CA3AF)),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel',
+                  style:
+                      TextStyle(fontSize: 13, color: Color(0xFF9CA3AF))),
+            ),
+            FilledButton(
+              onPressed: selected == null
+                  ? null
+                  : () {
+                      final rate = double.tryParse(rateCtrl.text) ?? 0;
+                      if (rate <= 0) return;
+                      onAdd(selected!, rate);
+                      Navigator.of(ctx).pop();
+                    },
+              style: FilledButton.styleFrom(
+                  backgroundColor: ficsitAmber,
+                  disabledBackgroundColor:
+                      ficsitAmber.withValues(alpha: 0.4)),
+              child: const Text('Add',
+                  style: TextStyle(
+                      fontSize: 13, fontFamily: 'ShareTechMono')),
+            ),
+          ],
         ),
       ),
     );

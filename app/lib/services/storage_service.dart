@@ -160,6 +160,21 @@ class NotesNotifier extends StateNotifier<NoteData> {
         factories: state.factories.where((f) => f.id != id).toList(),
       ));
 
+  void renameFactory(int id, String newName) =>
+      _save(state.copyWith(
+        factories: state.factories
+            .map((f) => f.id == id
+                ? Factory(
+                    id: f.id,
+                    name: newName,
+                    produces: f.produces,
+                    status: f.status,
+                    plannerData: f.plannerData,
+                  )
+                : f)
+            .toList(),
+      ));
+
   // Scratch
   void updateScratch(String text) =>
       _save(state.copyWith(scratch: text));

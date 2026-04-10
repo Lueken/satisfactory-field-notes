@@ -288,6 +288,63 @@ class _MachineItemBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (node.isSupplied) {
+      // Supplied item: show supply vs demand with blue accent
+      const suppliedColor = Color(0xFF185FA5);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.input, size: 12, color: suppliedColor),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  node.itemName,
+                  style: TextStyle(
+                    fontSize: isSectionHeader ? 14 : 13,
+                    color: suppliedColor,
+                    fontWeight: isSectionHeader
+                        ? FontWeight.w500
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+              Text(
+                'needs ${_fmtRate(node.rate)}/min',
+                style: const TextStyle(
+                    fontSize: 12, color: Color(0xFF9CA3AF)),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 16, top: 2),
+            child: Text(
+              'supplied ${_fmtRate(node.suppliedAmount)}/min',
+              style: const TextStyle(
+                  fontSize: 11, color: Color(0xFF9CA3AF)),
+            ),
+          ),
+          if (node.shortfall > 0)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, top: 2),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber,
+                      size: 12, color: Color(0xFFD97706)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'shortfall: ${_fmtRate(node.shortfall)}/min',
+                    style: const TextStyle(
+                        fontSize: 11, color: Color(0xFFD97706)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
     if (node.isRawResource) {
       // Raw resource: just item name + rate
       return Row(
